@@ -154,7 +154,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getFirestore, collection, doc, getDocs, getDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-
+    
     /* Deine Config */
     const firebaseConfig = {
       apiKey: "AIzaSyADlFNneC4KlLpKc5VsCu6cD2HBI9nqeFg",
@@ -170,6 +170,29 @@
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
     const storage = getStorage(app);
+
+    /* ===== Notion Verbindung (Konfig einfügen) ===== */
+const NOTION = {
+  token: "secret_DEIN_TOKEN_HIER",
+  databaseId: "29e24187be73803f87bdff5bd076b3db"
+};
+
+const notionHeaders = {
+  "Authorization": `Bearer ${NOTION.token}`,
+  "Notion-Version": "2022-06-28",
+  "Content-Type": "application/json"
+};
+
+(async () => {
+  try {
+    const res = await fetch(
+      `https://api.notion.com/v1/databases/${NOTION.databaseId}`,
+      { headers: notionHeaders }
+    );
+    console.log("Notion check:", res.ok ? "OK" : await res.text());
+  } catch (e) { console.error(e); }
+})();
+
 
     /* DOM */
     const $ = (id)=>document.getElementById(id);
