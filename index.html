@@ -216,56 +216,95 @@
     }
 
     /* ===== Render Ordner ===== */
-    function renderFolders(){
-      folderList.innerHTML = '';
-      // "Alle"-Pseudo-Ordner
-      folderList.appendChild(folderRow({ id:null, name:'Alle' }, true));
-      folders.forEach(f=> folderList.appendChild(folderRow(f)));
-      highlightActiveFolder();
-    }
-    function folderRow(f, isAll=false){
-      const li = document.createElement('li'); li.className='row'; li.dataset.fid = f.id ?? '';
-      const btn = document.createElement('button'); btn.className='main'; btn.textContent = f.name;
-      btn.onclick = ()=> { currentFolderId = f.id ?? null; renderProjects(); highlightActiveFolder(); };
-      li.appendChild(btn);
 
-      const icons = document.createElement('div'); icons.className='icons';
-      if(!isAll){
-        const rn = document.createElement('button'); rn.className='icon-btn'; rn.title='Umbenennen'; rn.textContent='✏️';
-        rn.onclick = async ()=>{
-          const name = prompt('Ordner umbenennen:', f.name || '');
-          if(!name) return;
-          await setDoc(doc(db,'folders', f.id), { name }, { merge:true });
-          await loadFolders(); renderFolders();
-        };
-        const del = document.createElement('button'); del.className='icon-btn'; del.title='Löschen'; del.textContent='🗑️';
-        del.onclick = async ()=>{
-          const has = allProjects.some(p=> (p.folderId||null) === f.id);
-          if(has){ alert('Ordner ist nicht leer. Verschiebe oder lösche zuerst die Projekte.'); return; }
-          if(!confirm(`Ordner "${f.name}" wirklich löschen?`)) return;
-          await deleteDoc(doc(db,'folders', f.id));
-          await loadFolders(); renderFolders();
-        };
-        icons.appendChild(rn); icons.appendChild(del);
-      }
-      // Drop-Ziel für Projekte:
-      li.ondragover = (e)=>{ e.preventDefault(); li.classList.add('droptarget'); };
-      li.ondragleave = ()=> li.classList.remove('droptarget');
-      li.ondrop = async (e)=>{
-        e.preventDefault(); li.classList.remove('droptarget');
-        const pid = e.dataTransfer.getData('text/projectId'); if(!pid) return;
-        await setDoc(doc(db,'projects',pid), { folderId: f.id ?? null }, { merge:true });
-        await loadProjects(); renderProjects();
-      };
-      li.appendChild(icons);
-      return li;
-    }
-    function highlightActiveFolder(){
-      document.querySelectorAll('#folderList .row').forEach(r=>{
-        const fid = r.dataset.fid || null;
-        r.classList.toggle('active', (fid=== (currentFolderId ?? null)));
-      });
-    }
+// Status, ob Ordner sichtbar sind
+let foldersVisible = false;
+
+// Toggle-Button hinzufügen
+function renderFolderToggle(){
+  const h3 = document.querySelector('.section h3');
+  if(!h3) return;
+  h3.style.cursor = 'pointer';
+  h3.innerHTML = `Ordner <span id="folderToggle" style="font-size:12px;opacity:.7;">(anzeigen)</span>`;
+  h3.onclick = ()=> toggleFolders();
+}
+
+// Umschalten der Sichtbarkeit
+function toggleFolders(){
+  foldersVisible = !foldersVisible;
+  const sec = document.querySelector('.section');
+  const toggle = document.getElementById('folderToggle');
+  if(foldersVisible){
+    sec.querySelector('#folderList').style.display = '';
+    sec.querySelector('#newFolderName').parentElement.style.display = '';
+    sec.querySelector('.hint').style.display = '';
+    toggle.textContent = '(verstecken)';
+  }else{
+    sec.querySelector('#folderList').style.display = 'none';
+    sec.querySelector('#newFolderName').parentElement.style.display = 'none';
+    sec.querySelector('.hint').style.display = 'none';
+    toggle.textContent = '(anzeigen)';
+  }
+}
+
+// Bestehende Ordnerlogik bleibt fast gleich
+function renderFolders(){
+  folderList.innerHTML = '';
+  folderList.appendChild(folderRow({ id:null, name:'Alle' }, true));
+  folders.forEach(f=> folderList.appendChild(folderRow(f)));
+  highlightActiveFolder();
+  // Initial ausblenden
+  if(!foldersVisible){
+    toggleFolders();
+  }
+}
+
+function folderRow(f, isAll=false){
+  const li = document.createElement('li'); li.className='row'; li.dataset.fid = f.id ?? '';
+  const btn = document.createElement('button'); btn.className='main'; btn.textContent = f.name;
+  btn.onclick = ()=> { currentFolderId = f.id ?? null; renderProjects(); highlightActiveFolder(); };
+  li.appendChild(btn);
+
+  const icons = document.createElement('div'); icons.className='icons';
+  if(!isAll){
+    const rn = document.createElement('button'); rn.className='icon-btn'; rn.title='Umbenennen'; rn.textContent='✏️';
+    rn.onclick = async ()=>{
+      const name = prompt('Ordner umbenennen:', f.name || '');
+      if(!name) return;
+      await setDoc(doc(db,'folders', f.id), { name }, { merge:true });
+      await loadFolders(); renderFolders();
+    };
+    const del = document.createElement('button'); del.className='icon-btn'; del.title='Löschen'; del.textContent='🗑️';
+    del.onclick = async ()=>{
+      const has = allProjects.some(p=> (p.folderId||null) === f.id);
+      if(has){ alert('Ordner ist nicht leer. Verschiebe oder lösche zuerst die Projekte.'); return; }
+      if(!confirm(`Ordner "${f.name}" wirklich löschen?`)) return;
+      await deleteDoc(doc(db,'folders', f.id));
+      await loadFolders(); renderFolders();
+    };
+    icons.appendChild(rn); icons.appendChild(del);
+  }
+  li.ondragover = (e)=>{ e.preventDefault(); li.classList.add('droptarget'); };
+  li.ondragleave = ()=> li.classList.remove('droptarget');
+  li.ondrop = async (e)=>{
+    e.preventDefault(); li.classList.remove('droptarget');
+    const pid = e.dataTransfer.getData('text/projectId'); if(!pid) return;
+    await setDoc(doc(db,'projects',pid), { folderId: f.id ?? null }, { merge:true });
+    await loadProjects(); renderProjects();
+  };
+  li.appendChild(icons);
+  return li;
+}
+
+function highlightActiveFolder(){
+  document.querySelectorAll('#folderList .row').forEach(r=>{
+    const fid = r.dataset.fid || null;
+    r.classList.toggle('active', (fid=== (currentFolderId ?? null)));
+  });
+}
+
+// Toggle beim Start initialisieren
+renderFolderToggle();
 
     /* ===== Render Projekte ===== */
     function renderProjects(){
