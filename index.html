@@ -24,8 +24,28 @@
     .chip:active{cursor:grabbing}
     .addchip{display:flex; gap:6px; margin-top:8px}
     .addchip input{flex:1;padding:8px 10px;border:1px solid #e5e7eb;border-radius:10px}
-    .board-wrap{position:relative; overflow:auto}
-    .board{position:relative; margin:18px; width:1600px; height:900px; background:#fff; border:1px solid #e5e7eb; border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,.05); background-size:contain; background-repeat:no-repeat; background-position:center}
+    .board-wrap {
+  position: relative;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.board {
+  position: relative;
+  width: 1600px;
+  height: 900px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 1px 6px rgba(0,0,0,.05);
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  transform-origin: top left;
+  transition: transform 0.2s ease;
+}
     .grid{position:absolute; inset:0; background:
       linear-gradient(to right, rgba(0,0,0,.06) 1px, transparent 1px),
       linear-gradient(to bottom, rgba(0,0,0,.06) 1px, transparent 1px);
