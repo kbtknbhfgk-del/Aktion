@@ -185,10 +185,11 @@ const notionHeaders = {
 
 (async () => {
   try {
-    const res = await fetch(
-      `https://api.notion.com/v1/databases/${NOTION.databaseId}`,
-      { headers: notionHeaders }
-    );
+   const res = await fetch(
+  `https://blue-mud-7ff7.djq6dnnpjs.workers.dev/v1/databases/${NOTION.databaseId}`,
+  { headers: notionHeaders }
+);
+
     console.log("Notion check:", res.ok ? "OK" : await res.text());
   } catch (e) { console.error(e); }
 })();
