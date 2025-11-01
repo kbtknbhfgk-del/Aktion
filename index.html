@@ -80,8 +80,23 @@
       position:absolute; border:2px dashed #3333; background:rgba(255,204,0,.25); cursor:move; outline:0;
     }
 
-    /* Drag & Drop Hinweise */
-    .droptarget{ outline:2px dashed #8ab6ff; outline-offset:-2px; }
+ /* REPLACE: diese Zeilen in deinem CSS */
+.droptarget{ outline:2px dashed #8ab6ff; outline-offset:-2px; }
+
+/* Apple-ähnlicher Header & Menü */
+.header-actions{ display:flex; gap:8px; align-items:center; }
+.disclosure{ border:1px solid var(--border); background:#fff; border-radius:8px; padding:6px 10px; cursor:pointer; }
+.kebab{ border:1px solid var(--border); background:#fff; border-radius:8px; padding:6px 8px; cursor:pointer; }
+.kebab:hover, .disclosure:hover{ background:#f7f7f9; }
+
+.menu{
+  position:absolute; z-index:9999; min-width:160px; background:#fff;
+  border:1px solid var(--border); border-radius:10px; box-shadow:0 10px 24px rgba(0,0,0,.08);
+}
+.menu ul{ list-style:none; margin:6px 0; padding:0; }
+.menu li{ padding:8px 12px; cursor:pointer; }
+.menu li:hover{ background:#f5f6f8; }
+
   </style>
 </head>
 <body>
@@ -215,48 +230,87 @@
       allProjects.sort((a,b)=> (a.name||a.id).localeCompare(b.name||b.id));
     }
 
-    /* ===== Render Ordner ===== */
+/* ===== Render Ordner ===== */
 
-// Status, ob Ordner sichtbar sind
-let foldersVisible = false;
+// Sichtbarkeit merken (optional im localStorage)
+let foldersVisible = JSON.parse(localStorage.getItem('ui.projectsVisible') ?? 'true');
 
-// Toggle-Button hinzufügen
+// Header „Projekte“ mit Chevron + Plus herstellen
 function renderFolderToggle(){
-  const h3 = document.querySelector('.section h3');
-  if(!h3) return;
-  h3.style.cursor = 'pointer';
-  h3.innerHTML = `Ordner <span id="folderToggle" style="font-size:12px;opacity:.7;">(anzeigen)</span>`;
-  h3.onclick = ()=> toggleFolders();
+  const firstSection = document.querySelectorAll('.sidebar .section')[0]; // Ordner-Section
+  const header = firstSection?.querySelector('h3');
+  if(!header) return;
+
+  header.style.cursor = 'default';
+  header.innerHTML = ''; // leeren
+
+  const title = document.createElement('span');
+  title.textContent = 'Projekte';
+
+  const actions = document.createElement('span');
+  actions.className = 'header-actions';
+
+  const chevron = document.createElement('button');
+  chevron.className = 'disclosure';
+  chevron.title = foldersVisible ? 'Zuklappen' : 'Aufklappen';
+  chevron.textContent = foldersVisible ? '▾' : '▸';
+  chevron.onclick = toggleProjectsVisibility;
+
+  const plus = document.createElement('button');
+  plus.className = 'disclosure';
+  plus.title = 'Neues Projekt';
+  plus.textContent = '+';
+  plus.onclick = async ()=>{
+    const name = prompt('Neues Projekt:');
+    if(name) await createProject(name);
+  };
+
+  actions.appendChild(chevron);
+  actions.appendChild(plus);
+  header.appendChild(title);
+  header.appendChild(actions);
+
+  applyProjectsVisibility();
 }
 
-// Umschalten der Sichtbarkeit
-function toggleFolders(){
+function toggleProjectsVisibility(){
   foldersVisible = !foldersVisible;
-  const sec = document.querySelector('.section');
-  const toggle = document.getElementById('folderToggle');
-  if(foldersVisible){
-    sec.querySelector('#folderList').style.display = '';
-    sec.querySelector('#newFolderName').parentElement.style.display = '';
-    sec.querySelector('.hint').style.display = '';
-    toggle.textContent = '(verstecken)';
-  }else{
-    sec.querySelector('#folderList').style.display = 'none';
-    sec.querySelector('#newFolderName').parentElement.style.display = 'none';
-    sec.querySelector('.hint').style.display = 'none';
-    toggle.textContent = '(anzeigen)';
+  localStorage.setItem('ui.projectsVisible', JSON.stringify(foldersVisible));
+  applyProjectsVisibility();
+}
+
+function applyProjectsVisibility(){
+  const secs = document.querySelectorAll('.sidebar .section');
+  const ordnerSec = secs[0]; // Ordner-Section
+  const projSec   = secs[1]; // Projekte-Section
+  const chevron = ordnerSec.querySelector('.disclosure');
+
+  // Sichtbarkeit
+  const ordnerParts = [
+    ordnerSec.querySelector('#folderList'),
+    ordnerSec.querySelector('.toolbar'),
+    ordnerSec.querySelector('.hint')
+  ];
+  ordnerParts.forEach(el=> el && (el.style.display = foldersVisible ? '' : 'none'));
+
+  if(projSec){
+    projSec.style.display = foldersVisible ? '' : 'none';
+  }
+
+  // Chevron Symbol
+  if(chevron){
+    chevron.textContent = foldersVisible ? '▾' : '▸';
+    chevron.title = foldersVisible ? 'Zuklappen' : 'Aufklappen';
   }
 }
 
-// Bestehende Ordnerlogik bleibt fast gleich
+// Ordnerliste wie gehabt
 function renderFolders(){
   folderList.innerHTML = '';
   folderList.appendChild(folderRow({ id:null, name:'Alle' }, true));
   folders.forEach(f=> folderList.appendChild(folderRow(f)));
   highlightActiveFolder();
-  // Initial ausblenden
-  if(!foldersVisible){
-    toggleFolders();
-  }
+  applyProjectsVisibility();
 }
 
 function folderRow(f, isAll=false){
@@ -267,14 +321,16 @@ function folderRow(f, isAll=false){
 
   const icons = document.createElement('div'); icons.className='icons';
   if(!isAll){
-    const rn = document.createElement('button'); rn.className='icon-btn'; rn.title='Umbenennen'; rn.textContent='✏️';
+    // Umbenennen
+    const rn = document.createElement('button'); rn.className='icon-btn'; rn.title='Umbenennen'; rn.textContent='Umben.';
     rn.onclick = async ()=>{
       const name = prompt('Ordner umbenennen:', f.name || '');
       if(!name) return;
       await setDoc(doc(db,'folders', f.id), { name }, { merge:true });
       await loadFolders(); renderFolders();
     };
-    const del = document.createElement('button'); del.className='icon-btn'; del.title='Löschen'; del.textContent='🗑️';
+    // Löschen
+    const del = document.createElement('button'); del.className='icon-btn'; del.title='Löschen'; del.textContent='Löschen';
     del.onclick = async ()=>{
       const has = allProjects.some(p=> (p.folderId||null) === f.id);
       if(has){ alert('Ordner ist nicht leer. Verschiebe oder lösche zuerst die Projekte.'); return; }
@@ -284,6 +340,7 @@ function folderRow(f, isAll=false){
     };
     icons.appendChild(rn); icons.appendChild(del);
   }
+  // Drop-Ziel für Projekte
   li.ondragover = (e)=>{ e.preventDefault(); li.classList.add('droptarget'); };
   li.ondragleave = ()=> li.classList.remove('droptarget');
   li.ondrop = async (e)=>{
@@ -303,63 +360,116 @@ function highlightActiveFolder(){
   });
 }
 
-// Toggle beim Start initialisieren
+// beim Start Header bauen
 renderFolderToggle();
 
+
     /* ===== Render Projekte ===== */
-    function renderProjects(){
-      projList.innerHTML = '';
-      const list = allProjects.filter(p=> (currentFolderId==null ? true : (p.folderId||null)===currentFolderId));
-      list.forEach(p=> projList.appendChild(projectRow(p)));
-      // aktives Projekt highlighten
-      document.querySelectorAll('#projList .row').forEach(r=>{
-        r.classList.toggle('active', r.dataset.pid === (current?.id || ''));
-      });
-    }
-    function projectRow(p){
-      const li = document.createElement('li'); li.className='row'; li.dataset.pid = p.id;
-      const btn = document.createElement('button'); btn.className='main'; btn.textContent = p.name || p.id;
-      btn.onclick = ()=> openProject(p.id);
-      btn.draggable = true;
-      btn.ondragstart = (e)=> e.dataTransfer.setData('text/projectId', p.id);
-      li.appendChild(btn);
+function renderProjects(){
+  projList.innerHTML = '';
+  const list = allProjects.filter(p=> (currentFolderId==null ? true : (p.folderId||null)===currentFolderId));
 
-      const icons = document.createElement('div'); icons.className='icons';
-      const rn = document.createElement('button'); rn.className='icon-btn'; rn.title='Umbenennen'; rn.textContent='✏️';
-      rn.onclick = async ()=>{
-        const name = prompt('Projekt umbenennen:', p.name || '');
-        if(!name) return;
-        await setDoc(doc(db,'projects', p.id), { name }, { merge:true });
-        await loadProjects(); renderProjects(); if(current?.id===p.id){ current.name=name; titleEl.textContent=name; }
-      };
-      const del = document.createElement('button'); del.className='icon-btn'; del.title='Löschen'; del.textContent='🗑️';
-      del.onclick = async ()=>{
-        if(!confirm(`Projekt "${p.name}" wirklich löschen?`)) return;
-        await deleteDoc(doc(db,'projects', p.id));
-        if(current?.id===p.id){ current=null; boxes=[]; bgUrl=''; titleEl.textContent='Kein Projekt gewählt'; bg.classList.add('hidden'); canvas.querySelectorAll('.box').forEach(b=>b.remove()); }
-        await loadProjects(); renderProjects();
-      };
-      icons.appendChild(rn); icons.appendChild(del);
-      li.appendChild(icons);
-      return li;
-    }
+  list.forEach(p=> projList.appendChild(projectRow(p)));
 
-    /* ===== Neues Projekt / Ordner ===== */
-    $('addBtn').onclick = async ()=>{
-      const name = $('newName').value.trim(); if(!name) return;
-      const id = slug(name);
-      await setDoc(doc(db,'projects',id), {
-        name, folderId: currentFolderId ?? null, bgUrl:'', boxes:[], updatedAt: Date.now()
-      });
-      $('newName').value = '';
-      await loadProjects(); renderProjects(); openProject(id);
-    };
-    $('addFolderBtn').onclick = async ()=>{
-      const name = $('newFolderName').value.trim(); if(!name) return;
-      const id = slug(name);
-      await setDoc(doc(db,'folders',id), { name, createdAt: Date.now() });
-      $('newFolderName').value=''; await loadFolders(); renderFolders();
-    };
+  // aktives Projekt highlighten
+  document.querySelectorAll('#projList .row').forEach(r=>{
+    r.classList.toggle('active', r.dataset.pid === (current?.id || ''));
+  });
+}
+
+function projectRow(p){
+  const li = document.createElement('li'); li.className='row'; li.dataset.pid = p.id;
+
+  // Hauptbutton (Name) + Drag
+  const btn = document.createElement('button'); btn.className='main'; btn.textContent = p.name || p.id;
+  btn.onclick = ()=> openProject(p.id);
+  btn.draggable = true;
+  btn.ondragstart = (e)=> e.dataTransfer.setData('text/projectId', p.id);
+  li.appendChild(btn);
+
+  // ⋯-Menü (Kebab)
+  const kebab = document.createElement('button'); kebab.className='kebab'; kebab.textContent='⋯';
+  kebab.onclick = (e)=> openKebabMenu(e.currentTarget, p);
+  const wrap = document.createElement('div'); wrap.className='icons'; wrap.appendChild(kebab);
+  li.appendChild(wrap);
+
+  return li;
+}
+
+// Kontextmenü
+let openMenu = null;
+function closeMenu(){ if(openMenu){ openMenu.remove(); openMenu=null; } }
+document.addEventListener('click', (e)=>{
+  // Klicken außerhalb schließt Menü
+  if(openMenu && !openMenu.contains(e.target)) closeMenu();
+});
+
+function openKebabMenu(anchor, project){
+  closeMenu();
+  const m = document.createElement('div'); m.className='menu';
+  const ul = document.createElement('ul');
+
+  const rename = document.createElement('li'); rename.textContent = 'Umbenennen';
+  rename.onclick = async ()=>{
+    const name = prompt('Projekt umbenennen:', project.name || '');
+    if(name){
+      await setDoc(doc(db,'projects', project.id), { name }, { merge:true });
+      await loadProjects(); renderProjects(); if(current?.id===project.id){ current.name=name; titleEl.textContent=name; }
+    }
+    closeMenu();
+  };
+
+  const del = document.createElement('li'); del.textContent = 'Löschen';
+  del.onclick = async ()=>{
+    if(confirm(`Projekt "${project.name}" wirklich löschen?`)){
+      await deleteDoc(doc(db,'projects', project.id));
+      if(current?.id===project.id){ current=null; boxes=[]; bgUrl=''; titleEl.textContent='Kein Projekt gewählt'; bg.classList.add('hidden'); canvas.querySelectorAll('.box').forEach(b=>b.remove()); }
+      await loadProjects(); renderProjects();
+    }
+    closeMenu();
+  };
+
+  ul.appendChild(rename);
+  ul.appendChild(del);
+  m.appendChild(ul);
+  document.body.appendChild(m);
+
+  // Position neben dem Button
+  const r = anchor.getBoundingClientRect();
+  m.style.top = (window.scrollY + r.bottom + 6) + 'px';
+  m.style.left = (window.scrollX + r.right - 160) + 'px';
+  openMenu = m;
+}
+
+/* ===== Neues Projekt / Ordner ===== */
+
+// Helfer: Projekt erstellen (aktueller Ordner wird übernommen)
+async function createProject(name){
+  const clean = (name||'').trim(); if(!clean) return;
+  const id = clean.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,'') || String(Date.now());
+  await setDoc(doc(db,'projects',id), {
+    name: clean,
+    folderId: currentFolderId ?? null,
+    bgUrl:'', boxes:[], updatedAt: Date.now()
+  });
+  await loadProjects(); renderProjects(); openProject(id);
+}
+
+// Button unter der Projektliste (bleibt funktionsfähig)
+$('addBtn').onclick = async ()=>{
+  const name = $('newName').value.trim(); if(!name) return;
+  $('newName').value = '';
+  await createProject(name);
+};
+
+// Ordner anlegen (unverändert)
+$('addFolderBtn').onclick = async ()=>{
+  const name = $('newFolderName').value.trim(); if(!name) return;
+  const id = name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,'') || String(Date.now());
+  await setDoc(doc(db,'folders',id), { name, createdAt: Date.now() });
+  $('newFolderName').value=''; await loadFolders(); renderFolders();
+};
+
 
     /* ===== Projekt öffnen ===== */
     async function openProject(id){
