@@ -2,97 +2,107 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Einfaches Layout</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Projekt-Board</title>
+
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
+    /* ====== Basis ====== */
+    :root{
+      --border:#e6e8eb;
+      --bg:#f5f6f8;
+      --text:#111;
+      --sidebar-min:160px;
+      --sidebar-ideal:20vw;
+      --sidebar-max:25vw;
+    }
+    *{ box-sizing:border-box; margin:0; padding:0; }
+    html, body{ height:100%; }
+    body{
+      display:flex; height:100vh;
+      background:var(--bg); color:var(--text);
+      font: 15px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
     }
 
-    body {
-      height: 100vh;
-      display: flex;
-      background-color: #f0f0f0;
-      font-family: Arial, sans-serif;
+    /* ====== Layout ====== */
+    .sidebar{
+      background:#fff; border-right:1px solid var(--border);
+      flex:0 0 clamp(var(--sidebar-min), var(--sidebar-ideal), var(--sidebar-max));
+      display:flex; flex-direction:column; min-width:var(--sidebar-min);
     }
-
-    /* Linke Leiste, passt sich an die Fensterbreite an */
-    .sidebar {
-      background-color: white;
-      flex: 0 0 clamp(150px, 20vw, 25vw); /* min 150px, ideal 20%, max 25% */
-      border-right: 1px solid #ccc;
+    .side-header{
+      padding:12px 14px; border-bottom:1px solid var(--border); font-weight:600;
     }
+    .proj-list{ list-style:none; overflow:auto; }
+    .proj-list li{ border-bottom:1px solid #f2f3f5; }
+    .proj-btn{
+      width:100%; text-align:left; padding:10px 14px;
+      border:0; background:#fff; cursor:pointer; font:inherit;
+      transition: background 120ms ease;
+    }
+    .proj-btn:hover{ background:#f7f7f9; }
+    .proj-btn.active{ background:#eef6ff; }
 
-    /* Rechter Bereich: weißes Blatt */
-    .content {
-      flex: 1;
-      background-color: white;
-      margin: 20px;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    .toolbar{
+      padding:10px 10px; border-top:1px solid var(--border);
+      display:flex; gap:8px;
+    }
+    .toolbar input, .btn{
+      padding:8px 10px; font:inherit; border:1px solid var(--border);
+      background:#fff; border-radius:8px;
+    }
+    .btn{ cursor:pointer; }
+    .btn:hover{ background:#f7f7f9; }
+
+    .content{
+      flex:1; margin:20px; background:#fff; border-radius:12px;
+      box-shadow:0 8px 24px rgba(0,0,0,.07); display:flex; flex-direction:column; overflow:hidden;
+    }
+    .content-header{
+      padding:10px 12px; border-bottom:1px solid var(--border);
+      display:flex; justify-content:space-between; align-items:center; gap:12px;
+    }
+    .left{ display:flex; gap:12px; align-items:center; }
+    .chip{ font-size:12px; padding:4px 8px; background:#f3f4f7; border-radius:999px; }
+
+    .controls{ display:flex; gap:8px; align-items:center; }
+    .hidden{ display:none; }
+    .status{ font-size:12px; color:#666; }
+
+    /* ====== Arbeitsfläche ====== */
+    .canvas-wrap{ position:relative; flex:1; overflow:auto; background:#fafafa; }
+    .canvas{
+      position:relative; margin:16px auto; width:min(1200px,95%); min-height:600px;
+      background:#fff; border:1px solid #eef0f2; box-shadow:0 8px 20px rgba(0,0,0,.06);
+    }
+    .bgimg{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
+
+    /* Kästchen */
+    .box{
+      position:absolute; border:2px dashed #3333;
+      background:rgba(255,204,0,.25); cursor:move;
+      outline:0;
     }
   </style>
 </head>
 <body>
 
-  <div class="sidebar"></div>
-  <div class="content"></div>
-
-</body>
-</html>
-
-
-
-
-<!DOCTYPE html>
-<html lang="de">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Projekt-Board (online)</title>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{height:100vh;display:flex;background:#f0f0f0;font-family:Arial, sans-serif}
-  .sidebar{background:#fff;flex:0 0 clamp(160px,20vw,25vw);border-right:1px solid #ddd;display:flex;flex-direction:column}
-  .side-header{padding:12px 14px;border-bottom:1px solid #eee;font-weight:bold}
-  .proj-list{list-style:none;overflow:auto}
-  .proj-list li{border-bottom:1px solid #f3f3f3}
-  .proj-btn{width:100%;text-align:left;padding:10px 14px;background:#fff;border:0;font:inherit;cursor:pointer}
-  .proj-btn:hover{background:#f7f7f7}
-  .toolbar{padding:10px 14px;border-top:1px solid #eee;display:flex;gap:8px}
-  .toolbar input,.toolbar button{padding:8px 10px;font:inherit}
-  .content{flex:1;background:#fff;margin:20px;border-radius:8px;box-shadow:0 0 10px rgba(0,0,0,.1);display:flex;flex-direction:column;overflow:hidden}
-  .content-header{padding:12px 16px;border-bottom:1px solid #eee;display:flex;gap:12px;align-items:center;justify-content:space-between}
-  .left{display:flex;gap:12px;align-items:center}
-  .status{font-size:12px;color:#666}
-  .canvas-wrap{position:relative;flex:1;overflow:auto;background:#fafafa}
-  .canvas{position:relative; margin:16px auto; width:min(1200px, 95%); min-height:600px; background:#fff; border:1px solid #eef0f2; box-shadow:0 8px 20px rgba(0,0,0,.06)}
-  .bgimg{position:absolute; inset:0; object-fit:contain; width:100%; height:100%}
-  .box{position:absolute; border:2px dashed #3333; background:#ff0a; cursor:move}
-  .controls{display:flex; gap:8px; align-items:center}
-  .chip{font-size:12px; padding:4px 8px; background:#f3f3f3; border-radius:999px}
-  .btn{padding:8px 12px;border:1px solid #ccc;background:#fff;border-radius:6px;cursor:pointer}
-  .btn:hover{background:#f7f7f7}
-  .hidden{display:none}
-</style>
-</head>
-<body>
-
+  <!-- ====== Seitenleiste ====== -->
   <aside class="sidebar">
     <div class="side-header">Projekte</div>
     <ul id="projList" class="proj-list"></ul>
+
     <div class="toolbar">
       <input id="newName" type="text" placeholder="Neues Projekt…" />
       <button id="addBtn" class="btn">Anlegen</button>
     </div>
   </aside>
 
+  <!-- ====== Hauptbereich ====== -->
   <main class="content">
     <div class="content-header">
       <div class="left">
         <div id="title" class="chip">Kein Projekt gewählt</div>
+
         <div class="controls">
           <input id="fileInput" type="file" accept="image/*" class="hidden" />
           <button id="bgBtn" class="btn">Hintergrundbild</button>
@@ -101,215 +111,254 @@
           <button id="saveBtn" class="btn">Speichern</button>
         </div>
       </div>
-      <div class="status" id="status">–</div>
+      <div id="status" class="status">–</div>
     </div>
 
     <div class="canvas-wrap">
       <div id="canvas" class="canvas">
         <img id="bg" class="bgimg hidden" alt="" />
-        <!-- Kästchen kommen dynamisch -->
+        <!-- Boxen werden dynamisch eingefügt -->
       </div>
     </div>
   </main>
 
-<!-- App-Code -->
-<script type="module">
-  /* --- Firebase SDKs (ESM) --- */
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, collection, doc, getDocs, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+  <!-- ====== App-Skript ====== -->
+  <script type="module">
+    /* --- Firebase SDKs (ESM) --- */
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, doc, getDocs, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
-  /* --- Deine Firebase-Konfiguration (aus deinem Screenshot) --- */
-  const firebaseConfig = {
-    apiKey: "AIzaSyADlFNneC4KlLpKc5VsCu6cD2HBI9nqeFg",
-    authDomain: "aktionen-1a5c9.firebaseapp.com",
-    projectId: "aktionen-1a5c9",
-    storageBucket: "aktionen-1a5c9.appspot.com",    // <-- wichtig: Bucket-Name, nicht Domain
-    messagingSenderId: "102987694659",
-    appId: "1:102987694659:web:066654dba83f4021e7caf6",
-    measurementId: "G-NHLWNGVTGM"
-  };
+    /* === Deine Firebase-Konfiguration (aus deinem Screenshot) === */
+    const firebaseConfig = {
+      apiKey: "AIzaSyADlFNneC4KlLpKc5VsCu6cD2HBI9nqeFg",
+      authDomain: "aktionen-1a5c9.firebaseapp.com",
+      projectId: "aktionen-1a5c9",
+      storageBucket: "aktionen-1a5c9.appspot.com",   // wichtig: Bucket-Name
+      messagingSenderId: "102987694659",
+      appId: "1:102987694659:web:066654dba83f4021e7caf6",
+      measurementId: "G-NHLWNGVTGM"
+    };
 
-  /* --- Init --- */
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const storage = getStorage(app);
+    /* === Initialisierung === */
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
 
-  /* --- DOM Helpers --- */
-  const $ = (id)=>document.getElementById(id);
-  const projList = $('projList');
-  const titleEl = $('title');
-  const statusEl = $('status');
-  const canvas = $('canvas');
-  const bg = $('bg');
-  const fileInput = $('fileInput');
-  const colorPicker = $('colorPicker');
+    /* === DOM-Refs === */
+    const $ = (id)=>document.getElementById(id);
+    const projList = $('projList');
+    const titleEl  = $('title');
+    const statusEl = $('status');
+    const canvas   = $('canvas');
+    const bg       = $('bg');
+    const fileInput= $('fileInput');
+    const colorPicker = $('colorPicker');
 
-  let current = null; // {id,name}
-  let boxes = [];     // [{id,x,y,w,h,color}]
-  let bgUrl = "";     // Download-URL aus Storage
+    /* === App-State === */
+    const LAST_KEY = 'lastProjectId';
+    const SAVE_DEBOUNCE_MS = 600;
 
-  function status(t){ statusEl.textContent = t; }
+    let current = null;   // {id,name}
+    let boxes   = [];     // [{id,x,y,w,h,color}]
+    let bgUrl   = "";     // Bild-Download-URL
+    let saveTimer = null;
 
-  /* --- Projekte laden & Liste rendern --- */
-  async function loadProjects(){
-    status('Lade Projekte…');
-    projList.innerHTML = '';
-    const snap = await getDocs(collection(db, 'projects'));
-    const items = [];
-    snap.forEach(d => items.push({ id: d.id, ...(d.data()||{}) }));
-    items.sort((a,b)=> (a.name||a.id).localeCompare(b.name||b.id));
-    items.forEach(p=>{
-      const li = document.createElement('li');
-      const btn = document.createElement('button');
-      btn.className = 'proj-btn';
-      btn.textContent = (p.name||p.id);
-      btn.onclick = ()=> openProject(p.id);
-      li.appendChild(btn);
-      projList.appendChild(li);
-    });
-    status(items.length? 'Bereit' : 'Keine Projekte');
-  }
+    const status = (t)=> statusEl.textContent = t;
 
-  /* --- Neues Projekt --- */
-  $('addBtn').onclick = async ()=>{
-    const name = $('newName').value.trim();
-    if(!name) return;
-    const id = name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,'') || String(Date.now());
-    await setDoc(doc(db,'projects',id), { name, bgUrl:'', boxes:[], updatedAt: Date.now() });
-    $('newName').value = '';
-    await loadProjects();
-    await openProject(id);
-  };
+    /* ====== Speichern (Autosave Debounce) ====== */
+    function scheduleSave(){
+      if(!current) return;
+      clearTimeout(saveTimer);
+      status('Speichern…');
+      saveTimer = setTimeout(async ()=>{
+        await setDoc(doc(db,'projects',current.id), {
+          name: current.name,
+          bgUrl,
+          boxes,
+          updatedAt: Date.now()
+        }, { merge:true });
+        status('Gespeichert');
+      }, SAVE_DEBOUNCE_MS);
+    }
 
-  /* --- Projekt öffnen --- */
-  async function openProject(id){
-    status('Lade Projekt…');
-    const d = await getDoc(doc(db,'projects',id));
-    if(!d.exists()){ status('Nicht gefunden'); return; }
-    const data = d.data();
-    current = { id, name: data.name || id };
-    boxes = Array.isArray(data.boxes) ? data.boxes : [];
-    bgUrl = data.bgUrl || '';
-    titleEl.textContent = current.name;
-    if(bgUrl){ bg.src = bgUrl; bg.classList.remove('hidden'); } else { bg.src=''; bg.classList.add('hidden'); }
-    renderBoxes();
-    status('Geladen');
-  }
+    /* ====== Projektliste laden & rendern ====== */
+    async function loadProjects(){
+      status('Lade Projekte…');
+      projList.innerHTML = '';
+      const snap = await getDocs(collection(db,'projects'));
+      const items = [];
+      snap.forEach(d => items.push({ id: d.id, ...(d.data()||{}) }));
+      items.sort((a,b)=> (a.name||a.id).localeCompare(b.name||b.id));
 
-  function renderBoxes(){
-    [...canvas.querySelectorAll('.box')].forEach(n=>n.remove());
-    boxes.forEach(b=>{
-      const div = document.createElement('div');
-      div.className = 'box';
-      div.style.left = b.x + 'px';
-      div.style.top = b.y + 'px';
-      div.style.width = b.w + 'px';
-      div.style.height = b.h + 'px';
-      div.style.background = hexToRGBA(b.color||'#ffcc00', 0.25);
-      div.style.borderColor = b.color||'#ffcc00';
-      div.dataset.id = b.id;
-      makeDraggableResizable(div, b.id);
-      canvas.appendChild(div);
-    });
-  }
+      items.forEach(p=>{
+        const li = document.createElement('li');
+        const btn = document.createElement('button');
+        btn.className = 'proj-btn';
+        btn.dataset.pid = p.id;
+        btn.textContent = (p.name || p.id);
+        btn.onclick = ()=> openProject(p.id);
+        li.appendChild(btn);
+        projList.appendChild(li);
+      });
 
-  /* --- Hintergrundbild upload --- */
-  $('bgBtn').onclick = ()=> fileInput.click();
-  fileInput.onchange = async (e)=>{
-    if(!current || !e.target.files?.length) return;
-    const file = e.target.files[0];
-    status('Lade Bild hoch…');
-    const r = ref(storage, `projects/${current.id}/background`);
-    await uploadBytes(r, file);
-    bgUrl = await getDownloadURL(r);
-    bg.src = bgUrl; bg.classList.remove('hidden');
-    status('Bild bereit – Speichern klicken');
-  };
+      status(items.length ? 'Bereit' : 'Keine Projekte');
 
-  /* --- Kästchen hinzufügen --- */
-  $('addBoxBtn').onclick = ()=>{
-    if(!current) return;
-    const id = 'b'+Math.random().toString(36).slice(2,8);
-    const color = colorPicker.value || '#ffcc00';
-    const box = { id, x: 40 + boxes.length*10, y: 40 + boxes.length*10, w: 160, h: 100, color };
-    boxes.push(box);
-    renderBoxes();
-  };
+      // Zuletzt genutztes Projekt automatisch öffnen
+      const last = localStorage.getItem(LAST_KEY);
+      if(last) { openProject(last).catch(()=>{}); }
+    }
 
-  /* --- Speichern (Firestore) --- */
-  $('saveBtn').onclick = async ()=>{
-    if(!current) return;
-    status('Speichere…');
-    await setDoc(doc(db,'projects',current.id), {
-      name: current.name,
-      bgUrl,
-      boxes,
-      updatedAt: Date.now()
-    }, { merge: true });
-    status('Gespeichert');
-  };
+    /* ====== Neues Projekt anlegen ====== */
+    $('addBtn').onclick = async ()=>{
+      const name = $('newName').value.trim();
+      if(!name) return;
+      const id = name.toLowerCase()
+                     .replace(/\s+/g,'-')
+                     .replace(/[^a-z0-9\-]/g,'') || String(Date.now());
+      await setDoc(doc(db,'projects',id), { name, bgUrl:'', boxes:[], updatedAt: Date.now() });
+      $('newName').value = '';
+      await loadProjects();
+      await openProject(id);
+    };
 
-  /* --- Helpers --- */
-  function hexToRGBA(hex, a){
-    const v = hex.replace('#','');
-    const r = parseInt(v.substring(0,2),16);
-    const g = parseInt(v.substring(2,4),16);
-    const b = parseInt(v.substring(4,6),16);
-    return `rgba(${r},${g},${b},${a})`;
-  }
+    /* ====== Projekt öffnen ====== */
+    async function openProject(id){
+      status('Lade Projekt…');
+      const d = await getDoc(doc(db,'projects',id));
+      if(!d.exists()){ status('Nicht gefunden'); return; }
 
-  function makeDraggableResizable(el, id){
-    let mode = null; // 'move' | 'resize'
-    let startX, startY, startW, startH, startL, startT;
+      const data = d.data();
+      current = { id, name: data.name || id };
+      boxes   = Array.isArray(data.boxes) ? data.boxes : [];
+      bgUrl   = data.bgUrl || '';
 
-    el.addEventListener('pointerdown', (e)=>{
-      const rect = el.getBoundingClientRect();
-      const inResize = (rect.right - e.clientX < 10) && (rect.bottom - e.clientY < 10);
-      mode = inResize ? 'resize' : 'move';
-      startX = e.clientX; startY = e.clientY;
-      startW = rect.width; startH = rect.height;
-      const c = canvas.getBoundingClientRect();
-      startL = rect.left - c.left + canvas.scrollLeft;
-      startT = rect.top  - c.top  + canvas.scrollTop;
-      el.setPointerCapture(e.pointerId);
-    });
+      titleEl.textContent = current.name;
+      localStorage.setItem(LAST_KEY, id);
 
-    el.addEventListener('pointermove', (e)=>{
-      if(!mode) return;
-      const dx = e.clientX - startX;
-      const dy = e.clientY - startY;
-      if(mode==='move'){
-        el.style.left = (startL + dx) + 'px';
-        el.style.top  = (startT + dy) + 'px';
-      }else{
-        el.style.width  = Math.max(40, startW + dx) + 'px';
-        el.style.height = Math.max(30, startH + dy) + 'px';
-      }
-    });
+      // Sidebar-Highlight
+      document.querySelectorAll('.proj-btn').forEach(b=>{
+        b.classList.toggle('active', b.dataset.pid === id);
+      });
 
-    el.addEventListener('pointerup', ()=>{
-      if(!mode) return;
-      const r = el.getBoundingClientRect();
-      const c = canvas.getBoundingClientRect();
-      const bx = boxes.find(b=>b.id===id);
-      if(bx){
-        bx.x = r.left - c.left + canvas.scrollLeft;
-        bx.y = r.top  - c.top  + canvas.scrollTop;
-        bx.w = r.width;
-        bx.h = r.height;
-      }
-      mode = null;
-    });
+      // Hintergrundbild setzen
+      if(bgUrl){ bg.src = bgUrl; bg.classList.remove('hidden'); }
+      else { bg.src=''; bg.classList.add('hidden'); }
 
-    el.addEventListener('dblclick', ()=>{
-      boxes = boxes.filter(b=>b.id!==id);
-      el.remove();
-    });
-  }
+      renderBoxes();
+      status('Geladen');
+    }
 
-  /* --- Start --- */
-  loadProjects();
-</script>
+    /* ====== Boxen rendern ====== */
+    function renderBoxes(){
+      [...canvas.querySelectorAll('.box')].forEach(n=>n.remove());
+
+      boxes.forEach(b=>{
+        const div = document.createElement('div');
+        div.className = 'box';
+        div.style.left   = b.x + 'px';
+        div.style.top    = b.y + 'px';
+        div.style.width  = b.w + 'px';
+        div.style.height = b.h + 'px';
+        div.style.background = hexToRGBA(b.color||'#ffcc00', .25);
+        div.style.borderColor = b.color||'#ffcc00';
+        div.dataset.id = b.id;
+
+        makeDraggableResizable(div, b.id);
+        canvas.appendChild(div);
+      });
+    }
+
+    /* ====== Hintergrundbild ====== */
+    $('bgBtn').onclick = ()=> fileInput.click();
+    fileInput.onchange = async (e)=>{
+      if(!current || !e.target.files?.length) return;
+      const file = e.target.files[0];
+      status('Bild wird hochgeladen…');
+      const r = ref(storage, `projects/${current.id}/background`);
+      await uploadBytes(r, file);
+      bgUrl = await getDownloadURL(r);
+      bg.src = bgUrl; bg.classList.remove('hidden');
+      status('Bild bereit');
+      scheduleSave(); // autosave nach Upload
+    };
+
+    /* ====== Kästchen hinzufügen ====== */
+    $('addBoxBtn').onclick = ()=>{
+      if(!current) return;
+      const id = 'b'+Math.random().toString(36).slice(2,8);
+      const color = colorPicker.value || '#ffcc00';
+      const box = { id, x:40+boxes.length*10, y:40+boxes.length*10, w:160, h:100, color };
+      boxes.push(box);
+      renderBoxes();
+      scheduleSave(); // autosave
+    };
+
+    /* ====== Manueller Save-Button ====== */
+    $('saveBtn').onclick = ()=> scheduleSave();
+
+    /* ====== Utilities ====== */
+    function hexToRGBA(hex, a){
+      const v = hex.replace('#','');
+      const r = parseInt(v.substring(0,2),16);
+      const g = parseInt(v.substring(2,4),16);
+      const b = parseInt(v.substring(4,6),16);
+      return `rgba(${r},${g},${b},${a})`;
+    }
+
+    // Drag/Resize: Ecke rechts-unten = Resize (10px), sonst Move
+    function makeDraggableResizable(el, id){
+      let mode = null; let startX, startY, startW, startH, startL, startT;
+
+      el.addEventListener('pointerdown', (e)=>{
+        const rect = el.getBoundingClientRect();
+        const inResize = (rect.right - e.clientX < 10) && (rect.bottom - e.clientY < 10);
+        mode = inResize ? 'resize' : 'move';
+        startX = e.clientX; startY = e.clientY;
+        startW = rect.width; startH = rect.height;
+        const c = canvas.getBoundingClientRect();
+        startL = rect.left - c.left + canvas.scrollLeft;
+        startT = rect.top  - c.top  + canvas.scrollTop;
+        el.setPointerCapture(e.pointerId);
+      });
+
+      el.addEventListener('pointermove', (e)=>{
+        if(!mode) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        if(mode==='move'){
+          el.style.left = (startL + dx) + 'px';
+          el.style.top  = (startT + dy) + 'px';
+        }else{
+          el.style.width  = Math.max(40, startW + dx) + 'px';
+          el.style.height = Math.max(30, startH + dy) + 'px';
+        }
+      });
+
+      el.addEventListener('pointerup', ()=>{
+        if(!mode) return;
+        const r = el.getBoundingClientRect();
+        const c = canvas.getBoundingClientRect();
+        const bx = boxes.find(b=>b.id===id);
+        if(bx){
+          bx.x = r.left - c.left + canvas.scrollLeft;
+          bx.y = r.top  - c.top  + canvas.scrollTop;
+          bx.w = r.width; bx.h = r.height;
+        }
+        mode = null;
+        scheduleSave(); // autosave nach Änderung
+      });
+
+      // Doppelklick = löschen
+      el.addEventListener('dblclick', ()=>{
+        boxes = boxes.filter(b=>b.id!==id);
+        el.remove();
+        scheduleSave();
+      });
+    }
+
+    /* ====== Start ====== */
+    loadProjects();
+  </script>
 </body>
 </html>
