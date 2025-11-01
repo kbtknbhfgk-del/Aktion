@@ -2,37 +2,45 @@
 <html lang="de">
 <head>
   <meta charset="utf-8" />
-  <title>Marktplan – Schnellplaner</title>
+  <title>Marktplan – Editor (v2)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    :root { --bg:#f6f7f9; --ink:#111; --muted:#7a7a7a; --brand:#2563eb; }
-    *{box-sizing:border-box} html,body{height:100%;margin:0;font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto}
-    .app{display:grid;grid-template-columns:260px 1fr; height:100%; background:var(--bg)}
+    :root { --bg:#f6f7f9; --ink:#111; --muted:#6b7280; --brand:#2563eb; --sel:#10b981; }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto;color:var(--ink);background:var(--bg)}
+    .app{display:grid;grid-template-columns:280px 1fr; height:100%}
     .side{padding:14px; border-right:1px solid #e5e7eb; background:#fff; overflow:auto}
-    .side h2{margin:6px 0 12px;font-size:16px}
+    .side h2{margin:6px 0 8px;font-size:15px}
     .tools{display:grid; gap:8px}
+    .row{display:flex; gap:8px; align-items:center}
     .btn{appearance:none;border:1px solid #e5e7eb; background:#fff; padding:8px 10px; border-radius:10px; cursor:pointer}
     .btn:hover{border-color:#d1d5db}
+    .btn.primary{background:var(--brand); color:#fff; border-color:transparent}
+    .btn.ghost{background:transparent}
+    input[type=file]{display:none}
+    input[type=number]{width:90px;padding:6px 8px;border:1px solid #e5e7eb;border-radius:8px}
     .palette{display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-top:8px}
     .chip{padding:10px; border:1px dashed #d1d5db; background:#fafafa; border-radius:12px; text-align:center; cursor:grab; user-select:none}
     .chip:active{cursor:grabbing}
-    .opt{margin-top:12px; color:var(--muted); display:flex; gap:8px; align-items:center}
+    .addchip{display:flex; gap:6px; margin-top:8px}
+    .addchip input{flex:1;padding:8px 10px;border:1px solid #e5e7eb;border-radius:10px}
     .board-wrap{position:relative; overflow:auto}
     .board{position:relative; margin:18px; width:1600px; height:900px; background:#fff; border:1px solid #e5e7eb; border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,.05); background-size:contain; background-repeat:no-repeat; background-position:center}
-    .hint{position:absolute; inset:auto 12px 12px auto; background:rgba(255,255,255,.9); padding:6px 8px; border:1px solid #e5e7eb; border-radius:8px; color:#666}
-    .item{position:absolute; min-width:90px; min-height:36px; padding:6px 10px; border:2px solid var(--brand); background:rgba(37,99,235,.08); border-radius:10px; cursor:move; user-select:none; display:flex; align-items:center; justify-content:center}
-    .item[contenteditable="true"]{cursor:text; outline:2px dashed #aaa}
-    .resize{position:absolute; width:12px;height:12px;border-radius:3px;background:var(--brand);right:-7px;bottom:-7px; cursor:nwse-resize}
     .grid{position:absolute; inset:0; background:
       linear-gradient(to right, rgba(0,0,0,.06) 1px, transparent 1px),
       linear-gradient(to bottom, rgba(0,0,0,.06) 1px, transparent 1px);
       background-size:40px 40px; pointer-events:none; border-radius:12px}
     .hidden{display:none}
-    .footer{position:fixed; left:280px; right:16px; bottom:16px; display:flex; gap:8px; justify-content:flex-end}
-    .btn.primary{background:var(--brand); color:#fff; border-color:transparent}
-    .btn.primary:hover{filter:brightness(.97)}
-    input[type=file]{display:none}
+    .item{position:absolute; min-width:90px; min-height:36px; padding:6px 10px; border:2px solid var(--brand); background:rgba(37,99,235,.08); border-radius:10px; cursor:move; user-select:none; display:flex; align-items:center; justify-content:center; transform-origin:center; touch-action:none}
+    .item.selected{outline:2px solid var(--sel)}
+    .resize{position:absolute; width:12px;height:12px;border-radius:3px;background:var(--brand);right:-7px;bottom:-7px; cursor:nwse-resize}
+    .rotate{position:absolute; width:12px;height:12px;border-radius:50%;background:var(--brand);left:50%;top:-20px;transform:translateX(-50%);cursor:grab}
+    .hint{position:absolute; inset:auto 12px 12px auto; background:rgba(255,255,255,.9); padding:6px 8px; border:1px solid #e5e7eb; border-radius:8px; color:#666}
     .kbd{font-family:ui-monospace, Menlo, monospace; background:#f1f5f9; border:1px solid #e5e7eb; padding:2px 6px; border-radius:6px}
+    .toolbar{position:fixed; right:20px; top:20px; display:flex; gap:8px; align-items:center; background:#fff; border:1px solid #e5e7eb; padding:8px 10px; border-radius:12px; box-shadow:0 3px 10px rgba(0,0,0,.06)}
+    .toolbar.hidden{display:none}
+    .toolbar input[type=color]{border:1px solid #e5e7eb;border-radius:8px;width:36px;height:32px;padding:0}
+    .summary{margin-top:10px; color:var(--muted); font-size:13px}
   </style>
 </head>
 <body>
@@ -43,21 +51,22 @@
       <label class="btn">🖼️ Hintergrund laden
         <input id="bgInput" type="file" accept="image/*">
       </label>
+      <div class="row">
+        <label class="btn ghost"><input id="gridToggle" type="checkbox"> Raster</label>
+        <div class="row">Größe:<input id="gridSize" type="number" min="5" value="40">px</div>
+        <label class="btn ghost"><input id="snapToggle" type="checkbox" checked> Snap</label>
+      </div>
       <button id="clearBtn" class="btn">🧹 Alles löschen</button>
-      <div class="opt"><input id="gridToggle" type="checkbox"><label for="gridToggle">Raster (40px) & Snap</label></div>
     </div>
 
-    <h2 style="margin-top:18px">Objekte</h2>
-    <div class="palette" id="palette">
-      <div class="chip" data-label="Tisch">Tisch</div>
-      <div class="chip" data-label="Theke">Theke</div>
-      <div class="chip" data-label="Spüle">Spüle</div>
-      <div class="chip" data-label="Banner">Banner</div>
-      <div class="chip" data-label="Kühlung">Kühlung</div>
-      <div class="chip" data-label="Stromkasten">Stromkasten</div>
+    <h2 style="margin-top:12px">Objekte</h2>
+    <div class="palette" id="palette"></div>
+    <div class="addchip">
+      <input id="newChipText" placeholder="Neues Objekt (z.B. Tisch)">
+      <button id="addChipBtn" class="btn">➕</button>
     </div>
 
-    <h2 style="margin-top:18px">Datei</h2>
+    <h2 style="margin-top:14px">Datei</h2>
     <div class="tools">
       <button id="saveJson" class="btn">💾 Plan speichern (JSON)</button>
       <label class="btn">📂 Plan laden
@@ -65,20 +74,32 @@
       </label>
       <button id="exportPng" class="btn">🖼️ Export PNG</button>
       <button id="exportPdf" class="btn">📄 Export PDF (A4)</button>
+      <button id="exportCsv" class="btn">📑 Export CSV (Zählung)</button>
     </div>
 
-    <p style="margin-top:16px;color:#666">
-      Tipp: <span class="kbd">Doppelklick</span> auf einen Kasten zum Umbenennen.
-      <br>Entfernen: Kasten anklicken + <span class="kbd">Entf</span>.
+    <div class="summary" id="summary">Zählung: –</div>
+
+    <p style="margin-top:12px;color:#666">
+      Doppelklick auf einen Kasten zum Umbenennen. Entfernen: Kasten anwählen + <span class="kbd">Entf</span>.
     </p>
   </aside>
 
   <main class="board-wrap">
     <div id="board" class="board">
       <div id="grid" class="grid hidden"></div>
-      <div class="hint">Hintergrund laden → Objekt aus der Palette ziehen → platzieren ↔ skalieren</div>
+      <div class="hint">Hintergrund laden → Objekt aus der Palette ziehen → platzieren ↔ skalieren (Shift = schneller)</div>
     </div>
   </main>
+</div>
+
+<!-- Floating Toolbar (für ausgewähltes Item) -->
+<div id="toolbar" class="toolbar hidden">
+  <button id="dupBtn" class="btn">⎘ Duplizieren</button>
+  <button id="delBtn" class="btn">🗑️ Löschen</button>
+  <label class="row">Farbe <input id="colorPicker" type="color" value="#2563eb"></label>
+  <label class="row">Drehung <input id="rotSlider" type="range" min="0" max="360" value="0"></label>
+  <button id="frontBtn" class="btn">⬆️ Nach vorn</button>
+  <button id="backBtn" class="btn">⬇️ Nach hinten</button>
 </div>
 
 <!-- libs für Export -->
@@ -88,136 +109,324 @@
   const board = document.getElementById('board');
   const grid = document.getElementById('grid');
   const gridToggle = document.getElementById('gridToggle');
+  const gridSizeInput = document.getElementById('gridSize');
+  const snapToggle = document.getElementById('snapToggle');
+  const palette = document.getElementById('palette');
+  const summaryEl = document.getElementById('summary');
+  const toolbar = document.getElementById('toolbar');
+  const colorPicker = document.getElementById('colorPicker');
+  const rotSlider = document.getElementById('rotSlider');
+  const dupBtn = document.getElementById('dupBtn');
+  const delBtn = document.getElementById('delBtn');
+  const frontBtn = document.getElementById('frontBtn');
+  const backBtn = document.getElementById('backBtn');
 
-  // Hintergrundbild laden
-  document.getElementById('bgInput').addEventListener('change', async (e)=>{
+  const DEFAULT_CHIPS = ['Tisch','Theke','Spüle','Banner','Kühlung','Stromkasten'];
+
+  let zCounter = 1;
+  let selected = null;
+  let currentBgDataUrl = null;
+  let saveTimer = null;
+
+  // ---- Palette ----
+  function renderPalette() {
+    palette.innerHTML = '';
+    const chips = JSON.parse(localStorage.getItem('chips')||'[]');
+    (chips.length ? chips : DEFAULT_CHIPS).forEach(label => addChip(label));
+  }
+
+  function addChip(label){
+    const el = document.createElement('div');
+    el.className = 'chip';
+    el.textContent = label;
+    el.dataset.label = label;
+    el.setAttribute('draggable','true');
+    el.addEventListener('dragstart', ev=> ev.dataTransfer.setData('text/plain', label));
+    palette.appendChild(el);
+  }
+
+  document.getElementById('addChipBtn').onclick = () => {
+    const v = document.getElementById('newChipText').value.trim();
+    if(!v) return;
+    const chips = new Set(JSON.parse(localStorage.getItem('chips')||'[]'));
+    chips.add(v);
+    localStorage.setItem('chips', JSON.stringify([...chips]));
+    document.getElementById('newChipText').value='';
+    renderPalette();
+  };
+
+  renderPalette();
+
+  // ---- Hintergrund laden (als DataURL, damit im JSON mitgespeichert) ----
+  document.getElementById('bgInput').addEventListener('change', (e)=>{
     const file = e.target.files[0]; if(!file) return;
-    const url = URL.createObjectURL(file);
-    board.style.backgroundImage = `url("${url}")`;
+    const reader = new FileReader();
+    reader.onload = () => {
+      currentBgDataUrl = reader.result;
+      board.style.backgroundImage = `url("${currentBgDataUrl}")`;
+      autosave();
+    };
+    reader.readAsDataURL(file);
   });
 
-  // Raster
+  // ---- Grid + Snap ----
+  function updateGrid(){
+    const size = Math.max(5, parseInt(gridSizeInput.value)||40);
+    grid.style.backgroundSize = size+'px '+size+'px';
+  }
   gridToggle.addEventListener('change', ()=>{
     grid.classList.toggle('hidden', !gridToggle.checked);
+    autosave();
   });
+  gridSizeInput.addEventListener('input', ()=>{ updateGrid(); autosave(); });
+  updateGrid();
 
-  // Palette → neue Items
-  document.querySelectorAll('.chip').forEach(chip=>{
-    chip.addEventListener('dragstart', ev=>{
-      ev.dataTransfer.setData('text/plain', chip.dataset.label);
-    });
-    chip.setAttribute('draggable','true');
-  });
-
-  // Drop-Ziel
+  // ---- Drop-Ziel ----
   board.addEventListener('dragover', ev=>ev.preventDefault());
   board.addEventListener('drop', ev=>{
     ev.preventDefault();
     const label = ev.dataTransfer.getData('text/plain') || 'Objekt';
     const rect = board.getBoundingClientRect();
-    createItem(label, ev.clientX - rect.left - 60, ev.clientY - rect.top - 20);
+    const x = ev.clientX - rect.left - 60, y = ev.clientY - rect.top - 20;
+    const it = createItem(label, x, y);
+    select(it);
   });
 
-  // Item erstellen
-  function createItem(text, x=40, y=40, w=120, h=44){
+  // ---- Item erstellen ----
+  function createItem(text, x=40, y=40, w=120, h=44, rot=0, color='#2563eb', z=++zCounter){
     const el = document.createElement('div');
     el.className = 'item';
     el.style.left = px(snap(x));
     el.style.top = px(snap(y));
     el.style.width = px(w);
     el.style.height = px(h);
+    el.style.borderColor = color;
+    el.style.backgroundColor = hexToRgba(color, 0.12);
+    el.style.transform = `rotate(${rot}deg)`;
+    el.style.zIndex = z;
+    el.dataset.color = color;
+    el.dataset.rot = rot;
     el.textContent = text;
 
-    // Resize Griff
-    const r = document.createElement('div');
-    r.className = 'resize';
-    el.appendChild(r);
+    // Handles
+    const r = document.createElement('div'); r.className='resize'; el.appendChild(r);
+    const rotH = document.createElement('div'); rotH.className='rotate'; el.appendChild(rotH);
 
-    // Drag
-    let dragging=false, rx=0, ry=0;
+    // Auswahl
     el.addEventListener('pointerdown', e=>{
-      if(e.target===r) return; // resize übernimmt
-      dragging=true; rx=e.clientX - el.offsetLeft; ry=e.clientY - el.offsetTop;
-      el.setPointerCapture(e.pointerId);
+      if(e.target===r || e.target===rotH) return;
+      beginDrag(el, e);
+      select(el);
     });
-    el.addEventListener('pointermove', e=>{
-      if(!dragging) return;
-      const x = e.clientX - rx, y = e.clientY - ry;
-      el.style.left = px(snap(clamp(x,0,board.clientWidth - el.offsetWidth)));
-      el.style.top  = px(snap(clamp(y,0,board.clientHeight- el.offsetHeight)));
-    });
-    el.addEventListener('pointerup', ()=> dragging=false);
 
-    // Resize
-    let resizing=false, rw=0, rh=0, sx=0, sy=0;
-    const rHandler = (e)=>{
-      if(!resizing) return;
-      let nw = rw + (e.clientX - sx), nh = rh + (e.clientY - sy);
-      nw = Math.max(70, nw); nh = Math.max(32, nh);
-      el.style.width  = px(snap(nw));
-      el.style.height = px(snap(nh));
-    };
-    r.addEventListener('pointerdown', e=>{
-      e.stopPropagation(); resizing=true; sx=e.clientX; sy=e.clientY; rw=el.offsetWidth; rh=el.offsetHeight;
-      r.setPointerCapture(e.pointerId);
-    });
-    r.addEventListener('pointermove', rHandler);
-    r.addEventListener('pointerup', ()=> resizing=false);
-
-    // Rename via Doppelklick
+    // Doppelklick rename
     el.addEventListener('dblclick', ()=>{
       el.setAttribute('contenteditable','true'); el.focus();
       const sel=window.getSelection(); const range=document.createRange();
       range.selectNodeContents(el); sel.removeAllRanges(); sel.addRange(range);
     });
-    el.addEventListener('blur', ()=> el.removeAttribute('contenteditable'));
+    el.addEventListener('blur', ()=>{ el.removeAttribute('contenteditable'); autosave(); updateSummary(); });
 
-    // Entfernen mit Entf
-    el.addEventListener('keydown', e=>{
-      if(e.key==='Delete'){ el.remove(); }
-    });
+    // Entfernen
+    el.addEventListener('keydown', e=>{ if(e.key==='Delete'){ if(selected===el) select(null); el.remove(); autosave(); updateSummary(); } });
+
+    // Resize
+    setupResize(el, r);
+
+    // Rotate
+    setupRotate(el, rotH);
 
     board.appendChild(el);
+    updateSummary();
+    autosave();
     return el;
   }
 
+  // ---- Drag bewegen ----
+  function beginDrag(el, e){
+    let dragging=true, rx=e.clientX - el.offsetLeft, ry=e.clientY - el.offsetTop;
+    el.setPointerCapture(e.pointerId);
+    const mm = (ev)=>{
+      if(!dragging) return;
+      const x = ev.clientX - rx, y = ev.clientY - ry;
+      el.style.left = px(snap(clamp(x,0,board.clientWidth - el.offsetWidth)));
+      el.style.top  = px(snap(clamp(y,0,board.clientHeight- el.offsetHeight)));
+    };
+    const up = ()=>{
+      dragging=false;
+      el.removeEventListener('pointermove', mm);
+      el.removeEventListener('pointerup', up);
+      autosave();
+    };
+    el.addEventListener('pointermove', mm);
+    el.addEventListener('pointerup', up);
+  }
+
+  function setupResize(el, handle){
+    let resizing=false, rw=0, rh=0, sx=0, sy=0;
+    handle.addEventListener('pointerdown', e=>{
+      e.stopPropagation(); resizing=true; sx=e.clientX; sy=e.clientY; rw=el.offsetWidth; rh=el.offsetHeight;
+      handle.setPointerCapture(e.pointerId);
+    });
+    handle.addEventListener('pointermove', e=>{
+      if(!resizing) return;
+      let nw = rw + (e.clientX - sx), nh = rh + (e.clientY - sy);
+      nw = Math.max(70, nw); nh = Math.max(32, nh);
+      el.style.width  = px(snap(nw));
+      el.style.height = px(snap(nh));
+    });
+    handle.addEventListener('pointerup', ()=>{ resizing=false; autosave(); });
+  }
+
+  function setupRotate(el, handle){
+    let rotating=false, cx=0, cy=0;
+    handle.addEventListener('pointerdown', e=>{
+      e.stopPropagation(); rotating=true; const rect = el.getBoundingClientRect(); cx = rect.left + rect.width/2; cy = rect.top + rect.height/2;
+      handle.setPointerCapture(e.pointerId);
+    });
+    handle.addEventListener('pointermove', e=>{
+      if(!rotating) return;
+      const ang = Math.atan2(e.clientY - cy, e.clientX - cx) * 180/Math.PI + 90;
+      const rot = Math.round(ang);
+      el.dataset.rot = rot;
+      el.style.transform = `rotate(${rot}deg)`;
+      if(selected===el) rotSlider.value = String((rot+360)%360);
+    });
+    handle.addEventListener('pointerup', ()=>{ rotating=false; autosave(); });
+  }
+
+  // ---- Auswahl / Toolbar ----
+  function select(el){
+    if(selected) selected.classList.remove('selected');
+    selected = el;
+    if(selected){
+      selected.classList.add('selected');
+      toolbar.classList.remove('hidden');
+      colorPicker.value = selected.dataset.color || '#2563eb';
+      rotSlider.value = String((parseInt(selected.dataset.rot)||0 + 360) % 360);
+      selected.focus();
+    }else{
+      toolbar.classList.add('hidden');
+    }
+  }
+
+  board.addEventListener('pointerdown', (e)=>{ if(e.target===board || e.target===grid){ select(null); } });
+
+  colorPicker.addEventListener('input', ()=>{
+    if(!selected) return;
+    const color = colorPicker.value;
+    selected.dataset.color = color;
+    selected.style.borderColor = color;
+    selected.style.backgroundColor = hexToRgba(color, 0.12);
+    autosave();
+  });
+
+  rotSlider.addEventListener('input', ()=>{
+    if(!selected) return;
+    const rot = parseInt(rotSlider.value)||0;
+    selected.dataset.rot = rot;
+    selected.style.transform = `rotate(${rot}deg)`;
+    autosave();
+  });
+
+  dupBtn.onclick = ()=>{
+    if(!selected) return;
+    const it = createItem(selected.textContent, parseInt(selected.style.left)+20, parseInt(selected.style.top)+20,
+                          parseInt(selected.style.width), parseInt(selected.style.height),
+                          parseInt(selected.dataset.rot)||0, selected.dataset.color||'#2563eb', ++zCounter);
+    select(it);
+  };
+
+  delBtn.onclick = ()=>{ if(selected){ const n=selected; select(null); n.remove(); autosave(); updateSummary(); } };
+  frontBtn.onclick = ()=>{ if(selected){ selected.style.zIndex = ++zCounter; autosave(); } };
+  backBtn.onclick = ()=>{ if(selected){ selected.style.zIndex = 0; autosave(); } };
+
+  // ---- Utils ----
   function px(n){ return `${Math.round(n)}px`; }
   function clamp(v,min,max){ return Math.min(max, Math.max(min,v)); }
-  function snap(v){ return gridToggle.checked ? Math.round(v/40)*40 : v; }
+  function snap(v){
+    if(!snapToggle.checked) return v;
+    const s = Math.max(5, parseInt(gridSizeInput.value)||40);
+    return Math.round(v/s)*s;
+  }
+  function hexToRgba(hex, a){
+    const m = hex.replace('#','');
+    const bigint = parseInt(m.length===3 ? m.split('').map(c=>c+c).join('') : m, 16);
+    const r = (bigint>>16)&255, g=(bigint>>8)&255, b=bigint&255;
+    return `rgba(${r},${g},${b},${a})`;
+  }
 
-  // Clear
+  // ---- Clear ----
   document.getElementById('clearBtn').onclick = ()=>{
     [...board.querySelectorAll('.item')].forEach(n=>n.remove());
     board.style.backgroundImage = 'none';
+    currentBgDataUrl = null;
+    select(null);
+    autosave();
+    updateSummary();
   };
 
-  // Save JSON
+  // ---- Save / Load JSON ----
   document.getElementById('saveJson').onclick = ()=>{
-    const data = {
-      bg: board.style.backgroundImage.replace(/^url\\("(.*)"\\)$/, '$1') || null,
-      items: [...board.querySelectorAll('.item')].map(el=>({
-        text: el.textContent,
-        x: parseInt(el.style.left), y: parseInt(el.style.top),
-        w: parseInt(el.style.width), h: parseInt(el.style.height)
-      }))
-    };
+    const data = serialize();
     const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
-    const a = Object.assign(document.createElement('a'), {href:URL.createObjectURL(blob), download:'marktplan.json'});
+    const a = Object.assign(document.createElement('a'), {href:URL.createObjectURL(blob), download:'arktplan.json'});
     a.click();
   };
 
-  // Load JSON
   document.getElementById('loadJson').addEventListener('change', async (e)=>{
     const file = e.target.files[0]; if(!file) return;
     const text = await file.text(); const data = JSON.parse(text);
-    [...board.querySelectorAll('.item')].forEach(n=>n.remove());
-    if(data.bg){
-      board.style.backgroundImage = `url("${data.bg}")`;
-    }
-    (data.items||[]).forEach(it=>createItem(it.text, it.x, it.y, it.w, it.h));
+    deserialize(data);
+    autosave();
   });
 
-  // Export PNG
+  function serialize(){
+    return {
+      bg: currentBgDataUrl,
+      gridVisible: !grid.classList.contains('hidden'),
+      gridSize: Math.max(5, parseInt(gridSizeInput.value)||40),
+      snap: snapToggle.checked,
+      items: [...board.querySelectorAll('.item')].map(el=>({
+        text: el.textContent,
+        x: parseInt(el.style.left), y: parseInt(el.style.top),
+        w: parseInt(el.style.width), h: parseInt(el.style.height),
+        rot: parseInt(el.dataset.rot)||0,
+        color: el.dataset.color||'#2563eb',
+        z: parseInt(el.style.zIndex)||1
+      }))
+    };
+  }
+
+  function deserialize(data){
+    [...board.querySelectorAll('.item')].forEach(n=>n.remove());
+    currentBgDataUrl = data.bg || null;
+    board.style.backgroundImage = currentBgDataUrl ? `url("${currentBgDataUrl}")` : 'none';
+    grid.classList.toggle('hidden', data.gridVisible===false);
+    gridToggle.checked = data.gridVisible!==false;
+    gridSizeInput.value = data.gridSize || 40; updateGrid();
+    snapToggle.checked = data.snap!==false;
+    (data.items||[]).forEach(it=>{
+      createItem(it.text, it.x, it.y, it.w, it.h, it.rot||0, it.color||'#2563eb', it.z||1);
+    });
+    updateSummary();
+  }
+
+  // ---- Autosave (localStorage) ----
+  function autosave(){
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(()=>{
+      localStorage.setItem('marktplan_autosave', JSON.stringify(serialize()));
+    }, 250);
+  }
+  try{
+    const saved = localStorage.getItem('marktplan_autosave');
+    if(saved){
+      deserialize(JSON.parse(saved));
+    }
+  }catch(e){}
+
+  // ---- Export PNG ----
   document.getElementById('exportPng').onclick = async ()=>{
     const canvas = await html2canvas(board, {backgroundColor:'#ffffff', scale:2});
     canvas.toBlob(blob=>{
@@ -226,7 +435,7 @@
     });
   };
 
-  // Export PDF A4
+  // ---- Export PDF A4 ----
   document.getElementById('exportPdf').onclick = async ()=>{
     const canvas = await html2canvas(board, {backgroundColor:'#ffffff', scale:2});
     const img = canvas.toDataURL('image/png');
@@ -235,33 +444,56 @@
     const pageW = pdf.internal.pageSize.getWidth();
     const pageH = pdf.internal.pageSize.getHeight();
     const ratio = Math.min(pageW / canvas.width, pageH / canvas.height);
-    const w = canvas.width * ratio * 0.264583; // px → mm
+    const w = canvas.width * ratio * 0.264583;
     const h = canvas.height * ratio * 0.264583;
     const x = (pageW - w)/2, y=(pageH - h)/2;
     pdf.addImage(img, 'PNG', x, y, w, h);
     pdf.save('marktplan.pdf');
   };
 
-  // Tastatur: Pfeile zum Feinschieben
+  // ---- Export CSV (Zählung) ----
+  document.getElementById('exportCsv').onclick = ()=>{
+    const counts = getCounts();
+    const rows = [['Label','Anzahl']].concat(Object.entries(counts));
+    const csv = rows.map(r => r.map(x => `"${String(x).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+    const a = Object.assign(document.createElement('a'), {href:URL.createObjectURL(blob), download:'marktplan_counts.csv'});
+    a.click();
+  };
+
+  function getCounts(){
+    const counts = {};
+    [...board.querySelectorAll('.item')].forEach(el=>{
+      const key = (el.textContent||'Objekt').trim();
+      counts[key] = (counts[key]||0)+1;
+    });
+    return counts;
+  }
+
+  function updateSummary(){
+    const c = getCounts();
+    const entries = Object.entries(c);
+    summaryEl.textContent = entries.length ? ('Zählung: ' + entries.map(([k,v])=>`${k} ${v}`).join(' · ')) : 'Zählung: –';
+  }
+
+  // ---- Tastatur: Pfeile & Shortcuts ----
   document.addEventListener('keydown', (e)=>{
-    const el = document.activeElement;
-    if(!el || !el.classList || !el.classList.contains('item')) return;
+    if(!selected) return;
     const step = e.shiftKey ? 10 : 1;
     if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){
       e.preventDefault();
-      const x = parseInt(el.style.left), y = parseInt(el.style.top);
-      if(e.key==='ArrowLeft') el.style.left = px(snap(x-step));
-      if(e.key==='ArrowRight') el.style.left = px(snap(x+step));
-      if(e.key==='ArrowUp') el.style.top = px(snap(y-step));
-      if(e.key==='ArrowDown') el.style.top = px(snap(y+step));
+      const x = parseInt(selected.style.left), y = parseInt(selected.style.top);
+      if(e.key==='ArrowLeft') selected.style.left = px(snap(x-step));
+      if(e.key==='ArrowRight') selected.style.left = px(snap(x+step));
+      if(e.key==='ArrowUp') selected.style.top = px(snap(y-step));
+      if(e.key==='ArrowDown') selected.style.top = px(snap(y+step));
+      autosave();
     }
+    if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='d'){ e.preventDefault(); dupBtn.click(); }
+    if(e.key==='Delete'){ e.preventDefault(); delBtn.click(); }
+    if((e.metaKey||e.ctrlKey) && e.key===']'){ e.preventDefault(); frontBtn.click(); }
+    if((e.metaKey||e.ctrlKey) && e.key==='['){ e.preventDefault(); backBtn.click(); }
   });
 </script>
 </body>
 </html>
-"""
-path = "/mnt/data/marktplan.html"
-with open(path, "w", encoding="utf-8") as f:
-    f.write(html_content)
-path
-
