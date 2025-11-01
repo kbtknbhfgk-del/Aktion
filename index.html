@@ -32,10 +32,30 @@
   align-items: center;
 }
 
+.board-wrap {
+  position: relative;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px;
+
+  /* Container-Queries aktivieren, damit wir die Größe des Wraps kennen */
+  container-type: size;
+
+  /* Skalierungsfaktor: Board passt sich an verfügbaren Platz an */
+  --s: min(
+    calc((100cqw - 24px) / 1600),
+    calc((100cqh - 24px) / 900),
+    1
+  );
+}
+
 .board {
   position: relative;
   width: 1600px;
   height: 900px;
+
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
@@ -43,9 +63,11 @@
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
-  transform-origin: top left;
-  transition: transform 0.2s ease;
+
+  transform-origin: center center;
+  transform: scale(var(--s));
 }
+
     .grid{position:absolute; inset:0; background:
       linear-gradient(to right, rgba(0,0,0,.06) 1px, transparent 1px),
       linear-gradient(to bottom, rgba(0,0,0,.06) 1px, transparent 1px);
