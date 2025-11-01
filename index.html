@@ -1,1 +1,268 @@
-hallo 
+# Create the HTML file for the user in the sandbox so they can download it.
+html_content = """<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <title>Marktplan – Schnellplaner</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { --bg:#f6f7f9; --ink:#111; --muted:#7a7a7a; --brand:#2563eb; }
+    *{box-sizing:border-box} html,body{height:100%;margin:0;font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto}
+    .app{display:grid;grid-template-columns:260px 1fr; height:100%; background:var(--bg)}
+    .side{padding:14px; border-right:1px solid #e5e7eb; background:#fff; overflow:auto}
+    .side h2{margin:6px 0 12px;font-size:16px}
+    .tools{display:grid; gap:8px}
+    .btn{appearance:none;border:1px solid #e5e7eb; background:#fff; padding:8px 10px; border-radius:10px; cursor:pointer}
+    .btn:hover{border-color:#d1d5db}
+    .palette{display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-top:8px}
+    .chip{padding:10px; border:1px dashed #d1d5db; background:#fafafa; border-radius:12px; text-align:center; cursor:grab; user-select:none}
+    .chip:active{cursor:grabbing}
+    .opt{margin-top:12px; color:var(--muted); display:flex; gap:8px; align-items:center}
+    .board-wrap{position:relative; overflow:auto}
+    .board{position:relative; margin:18px; width:1600px; height:900px; background:#fff; border:1px solid #e5e7eb; border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,.05); background-size:contain; background-repeat:no-repeat; background-position:center}
+    .hint{position:absolute; inset:auto 12px 12px auto; background:rgba(255,255,255,.9); padding:6px 8px; border:1px solid #e5e7eb; border-radius:8px; color:#666}
+    .item{position:absolute; min-width:90px; min-height:36px; padding:6px 10px; border:2px solid var(--brand); background:rgba(37,99,235,.08); border-radius:10px; cursor:move; user-select:none; display:flex; align-items:center; justify-content:center}
+    .item[contenteditable="true"]{cursor:text; outline:2px dashed #aaa}
+    .resize{position:absolute; width:12px;height:12px;border-radius:3px;background:var(--brand);right:-7px;bottom:-7px; cursor:nwse-resize}
+    .grid{position:absolute; inset:0; background:
+      linear-gradient(to right, rgba(0,0,0,.06) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(0,0,0,.06) 1px, transparent 1px);
+      background-size:40px 40px; pointer-events:none; border-radius:12px}
+    .hidden{display:none}
+    .footer{position:fixed; left:280px; right:16px; bottom:16px; display:flex; gap:8px; justify-content:flex-end}
+    .btn.primary{background:var(--brand); color:#fff; border-color:transparent}
+    .btn.primary:hover{filter:brightness(.97)}
+    input[type=file]{display:none}
+    .kbd{font-family:ui-monospace, Menlo, monospace; background:#f1f5f9; border:1px solid #e5e7eb; padding:2px 6px; border-radius:6px}
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <h2>Marktplan</h2>
+    <div class="tools">
+      <label class="btn">🖼️ Hintergrund laden
+        <input id="bgInput" type="file" accept="image/*">
+      </label>
+      <button id="clearBtn" class="btn">🧹 Alles löschen</button>
+      <div class="opt"><input id="gridToggle" type="checkbox"><label for="gridToggle">Raster (40px) & Snap</label></div>
+    </div>
+
+    <h2 style="margin-top:18px">Objekte</h2>
+    <div class="palette" id="palette">
+      <div class="chip" data-label="Tisch">Tisch</div>
+      <div class="chip" data-label="Theke">Theke</div>
+      <div class="chip" data-label="Spüle">Spüle</div>
+      <div class="chip" data-label="Banner">Banner</div>
+      <div class="chip" data-label="Kühlung">Kühlung</div>
+      <div class="chip" data-label="Stromkasten">Stromkasten</div>
+    </div>
+
+    <h2 style="margin-top:18px">Datei</h2>
+    <div class="tools">
+      <button id="saveJson" class="btn">💾 Plan speichern (JSON)</button>
+      <label class="btn">📂 Plan laden
+        <input id="loadJson" type="file" accept="application/json">
+      </label>
+      <button id="exportPng" class="btn">🖼️ Export PNG</button>
+      <button id="exportPdf" class="btn">📄 Export PDF (A4)</button>
+    </div>
+
+    <p style="margin-top:16px;color:#666">
+      Tipp: <span class="kbd">Doppelklick</span> auf einen Kasten zum Umbenennen.
+      <br>Entfernen: Kasten anklicken + <span class="kbd">Entf</span>.
+    </p>
+  </aside>
+
+  <main class="board-wrap">
+    <div id="board" class="board">
+      <div id="grid" class="grid hidden"></div>
+      <div class="hint">Hintergrund laden → Objekt aus der Palette ziehen → platzieren ↔ skalieren</div>
+    </div>
+  </main>
+</div>
+
+<!-- libs für Export -->
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script>
+  const board = document.getElementById('board');
+  const grid = document.getElementById('grid');
+  const gridToggle = document.getElementById('gridToggle');
+
+  // Hintergrundbild laden
+  document.getElementById('bgInput').addEventListener('change', async (e)=>{
+    const file = e.target.files[0]; if(!file) return;
+    const url = URL.createObjectURL(file);
+    board.style.backgroundImage = `url("${url}")`;
+  });
+
+  // Raster
+  gridToggle.addEventListener('change', ()=>{
+    grid.classList.toggle('hidden', !gridToggle.checked);
+  });
+
+  // Palette → neue Items
+  document.querySelectorAll('.chip').forEach(chip=>{
+    chip.addEventListener('dragstart', ev=>{
+      ev.dataTransfer.setData('text/plain', chip.dataset.label);
+    });
+    chip.setAttribute('draggable','true');
+  });
+
+  // Drop-Ziel
+  board.addEventListener('dragover', ev=>ev.preventDefault());
+  board.addEventListener('drop', ev=>{
+    ev.preventDefault();
+    const label = ev.dataTransfer.getData('text/plain') || 'Objekt';
+    const rect = board.getBoundingClientRect();
+    createItem(label, ev.clientX - rect.left - 60, ev.clientY - rect.top - 20);
+  });
+
+  // Item erstellen
+  function createItem(text, x=40, y=40, w=120, h=44){
+    const el = document.createElement('div');
+    el.className = 'item';
+    el.style.left = px(snap(x));
+    el.style.top = px(snap(y));
+    el.style.width = px(w);
+    el.style.height = px(h);
+    el.textContent = text;
+
+    // Resize Griff
+    const r = document.createElement('div');
+    r.className = 'resize';
+    el.appendChild(r);
+
+    // Drag
+    let dragging=false, rx=0, ry=0;
+    el.addEventListener('pointerdown', e=>{
+      if(e.target===r) return; // resize übernimmt
+      dragging=true; rx=e.clientX - el.offsetLeft; ry=e.clientY - el.offsetTop;
+      el.setPointerCapture(e.pointerId);
+    });
+    el.addEventListener('pointermove', e=>{
+      if(!dragging) return;
+      const x = e.clientX - rx, y = e.clientY - ry;
+      el.style.left = px(snap(clamp(x,0,board.clientWidth - el.offsetWidth)));
+      el.style.top  = px(snap(clamp(y,0,board.clientHeight- el.offsetHeight)));
+    });
+    el.addEventListener('pointerup', ()=> dragging=false);
+
+    // Resize
+    let resizing=false, rw=0, rh=0, sx=0, sy=0;
+    const rHandler = (e)=>{
+      if(!resizing) return;
+      let nw = rw + (e.clientX - sx), nh = rh + (e.clientY - sy);
+      nw = Math.max(70, nw); nh = Math.max(32, nh);
+      el.style.width  = px(snap(nw));
+      el.style.height = px(snap(nh));
+    };
+    r.addEventListener('pointerdown', e=>{
+      e.stopPropagation(); resizing=true; sx=e.clientX; sy=e.clientY; rw=el.offsetWidth; rh=el.offsetHeight;
+      r.setPointerCapture(e.pointerId);
+    });
+    r.addEventListener('pointermove', rHandler);
+    r.addEventListener('pointerup', ()=> resizing=false);
+
+    // Rename via Doppelklick
+    el.addEventListener('dblclick', ()=>{
+      el.setAttribute('contenteditable','true'); el.focus();
+      const sel=window.getSelection(); const range=document.createRange();
+      range.selectNodeContents(el); sel.removeAllRanges(); sel.addRange(range);
+    });
+    el.addEventListener('blur', ()=> el.removeAttribute('contenteditable'));
+
+    // Entfernen mit Entf
+    el.addEventListener('keydown', e=>{
+      if(e.key==='Delete'){ el.remove(); }
+    });
+
+    board.appendChild(el);
+    return el;
+  }
+
+  function px(n){ return `${Math.round(n)}px`; }
+  function clamp(v,min,max){ return Math.min(max, Math.max(min,v)); }
+  function snap(v){ return gridToggle.checked ? Math.round(v/40)*40 : v; }
+
+  // Clear
+  document.getElementById('clearBtn').onclick = ()=>{
+    [...board.querySelectorAll('.item')].forEach(n=>n.remove());
+    board.style.backgroundImage = 'none';
+  };
+
+  // Save JSON
+  document.getElementById('saveJson').onclick = ()=>{
+    const data = {
+      bg: board.style.backgroundImage.replace(/^url\\("(.*)"\\)$/, '$1') || null,
+      items: [...board.querySelectorAll('.item')].map(el=>({
+        text: el.textContent,
+        x: parseInt(el.style.left), y: parseInt(el.style.top),
+        w: parseInt(el.style.width), h: parseInt(el.style.height)
+      }))
+    };
+    const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+    const a = Object.assign(document.createElement('a'), {href:URL.createObjectURL(blob), download:'marktplan.json'});
+    a.click();
+  };
+
+  // Load JSON
+  document.getElementById('loadJson').addEventListener('change', async (e)=>{
+    const file = e.target.files[0]; if(!file) return;
+    const text = await file.text(); const data = JSON.parse(text);
+    [...board.querySelectorAll('.item')].forEach(n=>n.remove());
+    if(data.bg){
+      board.style.backgroundImage = `url("${data.bg}")`;
+    }
+    (data.items||[]).forEach(it=>createItem(it.text, it.x, it.y, it.w, it.h));
+  });
+
+  // Export PNG
+  document.getElementById('exportPng').onclick = async ()=>{
+    const canvas = await html2canvas(board, {backgroundColor:'#ffffff', scale:2});
+    canvas.toBlob(blob=>{
+      const a = Object.assign(document.createElement('a'), {href:URL.createObjectURL(blob), download:'marktplan.png'});
+      a.click();
+    });
+  };
+
+  // Export PDF A4
+  document.getElementById('exportPdf').onclick = async ()=>{
+    const canvas = await html2canvas(board, {backgroundColor:'#ffffff', scale:2});
+    const img = canvas.toDataURL('image/png');
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({unit:'mm', format:'a4', orientation:'landscape'});
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const ratio = Math.min(pageW / canvas.width, pageH / canvas.height);
+    const w = canvas.width * ratio * 0.264583; // px → mm
+    const h = canvas.height * ratio * 0.264583;
+    const x = (pageW - w)/2, y=(pageH - h)/2;
+    pdf.addImage(img, 'PNG', x, y, w, h);
+    pdf.save('marktplan.pdf');
+  };
+
+  // Tastatur: Pfeile zum Feinschieben
+  document.addEventListener('keydown', (e)=>{
+    const el = document.activeElement;
+    if(!el || !el.classList || !el.classList.contains('item')) return;
+    const step = e.shiftKey ? 10 : 1;
+    if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){
+      e.preventDefault();
+      const x = parseInt(el.style.left), y = parseInt(el.style.top);
+      if(e.key==='ArrowLeft') el.style.left = px(snap(x-step));
+      if(e.key==='ArrowRight') el.style.left = px(snap(x+step));
+      if(e.key==='ArrowUp') el.style.top = px(snap(y-step));
+      if(e.key==='ArrowDown') el.style.top = px(snap(y+step));
+    }
+  });
+</script>
+</body>
+</html>
+"""
+path = "/mnt/data/marktplan.html"
+with open(path, "w", encoding="utf-8") as f:
+    f.write(html_content)
+path
+
