@@ -3,51 +3,42 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mein Layout</title>
+  <title>Einfaches Layout</title>
   <style>
-    body {
+    * {
+      box-sizing: border-box;
       margin: 0;
-      background-color: #f0f0f0;
+      padding: 0;
+    }
+
+    body {
       height: 100vh;
       display: flex;
-      flex-direction: row;
+      background-color: #f0f0f0;
       font-family: Arial, sans-serif;
     }
 
-    /* Linke Seite (Reiter) */
+    /* Linke Leiste, passt sich an die Fensterbreite an */
     .sidebar {
       background-color: white;
-      width: 250px; /* feste Breite – später änderbar */
-      height: 100%;
+      flex: 0 0 clamp(150px, 20vw, 25vw); /* min 150px, ideal 20%, max 25% */
       border-right: 1px solid #ccc;
-      box-sizing: border-box;
     }
 
-    /* Rechte Seite (weißes Blatt) */
+    /* Rechter Bereich: weißes Blatt */
     .content {
-      background-color: white;
       flex: 1;
+      background-color: white;
       margin: 20px;
       border-radius: 8px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      padding: 20px;
-    }
-
-    h1 {
-      font-size: 24px;
     }
   </style>
 </head>
 <body>
 
-  <div class="sidebar">
-    <!-- Hier könntest du später Menüpunkte oder Buttons hinzufügen -->
-  </div>
-
-  <div class="content">
-    <h1>Mein weißes Blatt</h1>
-    <p>Hier kannst du Inhalte hinzufügen.</p>
-  </div>
+  <div class="sidebar"></div>
+  <div class="content"></div>
 
 </body>
 </html>
