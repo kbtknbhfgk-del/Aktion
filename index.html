@@ -163,6 +163,37 @@
   const frontBtn = document.getElementById('frontBtn');
   const backBtn = document.getElementById('backBtn');
 
+  <script>
+// ---- Fallback-Skalierung für Notion (wenn cqw/cqh nicht unterstützt) ----
+(function(){
+  const supportsContainerUnits = CSS && CSS.supports && CSS.supports('width: 100cqw');
+  if (supportsContainerUnits) return; // Unser CSS reicht
+
+  const wrap = document.querySelector('.board-wrap');
+  const board = document.getElementById('board');
+
+  function scaleFallback(){
+    if (!wrap || !board) return;
+    // Designgröße des Boards: 1600 x 900
+    const s = Math.min(
+      (wrap.clientWidth - 24) / 1600,
+      (wrap.clientHeight - 24) / 900,
+      1
+    );
+    // setzt die gleiche CSS-Variable wie im Stylesheet
+    wrap.style.setProperty('--s', s);
+    board.style.transform = `scale(${s})`;
+    board.style.transformOrigin = 'center center';
+  }
+
+  window.addEventListener('resize', scaleFallback, { passive: true });
+  window.addEventListener('load', scaleFallback);
+  // Falls Notion den Embed verzögert rendert, nochmal nach kurzer Zeit
+  setTimeout(scaleFallback, 300);
+})();
+</script>
+
+
   const DEFAULT_CHIPS = ['Tisch','Theke','Spüle','Banner','Kühlung','Stromkasten'];
 
   let zCounter = 1;
