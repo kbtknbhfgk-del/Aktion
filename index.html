@@ -4,55 +4,55 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Projekt-Board</title>
-
   <style>
-    /* ====== Basis ====== */
     :root{
-      --border:#e6e8eb;
-      --bg:#f5f6f8;
-      --text:#111;
-      --sidebar-min:160px;
-      --sidebar-ideal:20vw;
-      --sidebar-max:25vw;
+      --border:#e6e8eb; --bg:#f5f6f8; --text:#111;
+      --sidebar-min:200px; --sidebar-ideal:22vw; --sidebar-max:25vw;
+      --muted:#5f6770;
     }
     *{ box-sizing:border-box; margin:0; padding:0; }
     html, body{ height:100%; }
     body{
-      display:flex; height:100vh;
-      background:var(--bg); color:var(--text);
-      font: 15px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      display:flex; height:100vh; background:var(--bg); color:var(--text);
+      font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
     }
 
-    /* ====== Layout ====== */
+    /* Sidebar */
     .sidebar{
       background:#fff; border-right:1px solid var(--border);
       flex:0 0 clamp(var(--sidebar-min), var(--sidebar-ideal), var(--sidebar-max));
       display:flex; flex-direction:column; min-width:var(--sidebar-min);
     }
-    .side-header{
-      padding:12px 14px; border-bottom:1px solid var(--border); font-weight:600;
+    .section{
+      display:flex; flex-direction:column; gap:8px; padding:12px 10px;
+      border-bottom:1px solid var(--border);
     }
-    .proj-list{ list-style:none; overflow:auto; }
-    .proj-list li{ border-bottom:1px solid #f2f3f5; }
-    .proj-btn{
-      width:100%; text-align:left; padding:10px 14px;
-      border:0; background:#fff; cursor:pointer; font:inherit;
-      transition: background 120ms ease;
+    .section h3{ font-size:13px; font-weight:700; color:#2a2f36; letter-spacing:.3px; }
+    .list{ list-style:none; max-height:35vh; overflow:auto; border:1px solid var(--border); border-radius:10px; }
+    .row{
+      display:flex; align-items:center; justify-content:space-between; gap:8px;
+      padding:9px 10px; border-bottom:1px solid #f1f3f5; background:#fff;
     }
-    .proj-btn:hover{ background:#f7f7f9; }
-    .proj-btn.active{ background:#eef6ff; }
-
-    .toolbar{
-      padding:10px 10px; border-top:1px solid var(--border);
-      display:flex; gap:8px;
+    .row:last-child{ border-bottom:0; }
+    .row button.main{
+      flex:1; text-align:left; border:0; background:transparent; padding:0; cursor:pointer; font:inherit;
     }
+    .row.active{ background:#eef6ff; }
+    .icons{ display:flex; gap:4px; }
+    .icon-btn{
+      border:1px solid var(--border); background:#fff; border-radius:7px; padding:4px 6px; cursor:pointer; font-size:12px;
+    }
+    .icon-btn:hover{ background:#f7f7f9; }
+    .toolbar{ display:flex; gap:8px; }
     .toolbar input, .btn{
-      padding:8px 10px; font:inherit; border:1px solid var(--border);
-      background:#fff; border-radius:8px;
+      padding:8px 10px; font:inherit; border:1px solid var(--border); background:#fff; border-radius:8px;
     }
     .btn{ cursor:pointer; }
     .btn:hover{ background:#f7f7f9; }
 
+    .hint{ color:var(--muted); font-size:12px; padding:0 2px; }
+
+    /* Content */
     .content{
       flex:1; margin:20px; background:#fff; border-radius:12px;
       box-shadow:0 8px 24px rgba(0,0,0,.07); display:flex; flex-direction:column; overflow:hidden;
@@ -63,12 +63,11 @@
     }
     .left{ display:flex; gap:12px; align-items:center; }
     .chip{ font-size:12px; padding:4px 8px; background:#f3f4f7; border-radius:999px; }
-
     .controls{ display:flex; gap:8px; align-items:center; }
-    .hidden{ display:none; }
     .status{ font-size:12px; color:#666; }
+    .hidden{ display:none; }
 
-    /* ====== Arbeitsfläche ====== */
+    /* Canvas */
     .canvas-wrap{ position:relative; flex:1; overflow:auto; background:#fafafa; }
     .canvas{
       position:relative; margin:16px auto; width:min(1200px,95%); min-height:600px;
@@ -76,33 +75,46 @@
     }
     .bgimg{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
 
-    /* Kästchen */
+    /* Boxen */
     .box{
-      position:absolute; border:2px dashed #3333;
-      background:rgba(255,204,0,.25); cursor:move;
-      outline:0;
+      position:absolute; border:2px dashed #3333; background:rgba(255,204,0,.25); cursor:move; outline:0;
     }
+
+    /* Drag & Drop Hinweise */
+    .droptarget{ outline:2px dashed #8ab6ff; outline-offset:-2px; }
   </style>
 </head>
 <body>
 
-  <!-- ====== Seitenleiste ====== -->
+  <!-- SIDEBAR -->
   <aside class="sidebar">
-    <div class="side-header">Projekte</div>
-    <ul id="projList" class="proj-list"></ul>
+    <!-- Ordner -->
+    <div class="section">
+      <h3>Ordner</h3>
+      <ul id="folderList" class="list" aria-label="Ordnerliste"></ul>
+      <div class="toolbar">
+        <input id="newFolderName" type="text" placeholder="Neuer Ordner…" />
+        <button id="addFolderBtn" class="btn">Anlegen</button>
+      </div>
+      <div class="hint">Tipp: Ziehe Projekte auf einen Ordner, um sie zu verschieben.</div>
+    </div>
 
-    <div class="toolbar">
-      <input id="newName" type="text" placeholder="Neues Projekt…" />
-      <button id="addBtn" class="btn">Anlegen</button>
+    <!-- Projekte -->
+    <div class="section" style="border-bottom:none">
+      <h3>Projekte</h3>
+      <ul id="projList" class="list" aria-label="Projektliste"></ul>
+      <div class="toolbar">
+        <input id="newName" type="text" placeholder="Neues Projekt…" />
+        <button id="addBtn" class="btn">Anlegen</button>
+      </div>
     </div>
   </aside>
 
-  <!-- ====== Hauptbereich ====== -->
+  <!-- CONTENT -->
   <main class="content">
     <div class="content-header">
       <div class="left">
         <div id="title" class="chip">Kein Projekt gewählt</div>
-
         <div class="controls">
           <input id="fileInput" type="file" accept="image/*" class="hidden" />
           <button id="bgBtn" class="btn">Hintergrundbild</button>
@@ -117,248 +129,285 @@
     <div class="canvas-wrap">
       <div id="canvas" class="canvas">
         <img id="bg" class="bgimg hidden" alt="" />
-        <!-- Boxen werden dynamisch eingefügt -->
       </div>
     </div>
   </main>
 
-  <!-- ====== App-Skript ====== -->
+  <!-- APP -->
   <script type="module">
-    /* --- Firebase SDKs (ESM) --- */
+    /* Firebase SDKs */
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, doc, getDocs, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, doc, getDocs, getDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
-    /* === Deine Firebase-Konfiguration (aus deinem Screenshot) === */
+    /* Deine Config */
     const firebaseConfig = {
       apiKey: "AIzaSyADlFNneC4KlLpKc5VsCu6cD2HBI9nqeFg",
       authDomain: "aktionen-1a5c9.firebaseapp.com",
       projectId: "aktionen-1a5c9",
-      storageBucket: "aktionen-1a5c9.appspot.com",   // wichtig: Bucket-Name
+      storageBucket: "aktionen-1a5c9.appspot.com",
       messagingSenderId: "102987694659",
       appId: "1:102987694659:web:066654dba83f4021e7caf6",
       measurementId: "G-NHLWNGVTGM"
     };
 
-    /* === Initialisierung === */
+    /* Init */
     const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    const db  = getFirestore(app);
     const storage = getStorage(app);
 
-    /* === DOM-Refs === */
+    /* DOM */
     const $ = (id)=>document.getElementById(id);
-    const projList = $('projList');
-    const titleEl  = $('title');
-    const statusEl = $('status');
-    const canvas   = $('canvas');
-    const bg       = $('bg');
-    const fileInput= $('fileInput');
-    const colorPicker = $('colorPicker');
+    const folderList = $('folderList');
+    const projList   = $('projList');
+    const titleEl    = $('title');
+    const statusEl   = $('status');
+    const canvas     = $('canvas');
+    const bg         = $('bg');
+    const fileInput  = $('fileInput');
+    const colorPicker= $('colorPicker');
 
-    /* === App-State === */
+    /* State */
     const LAST_KEY = 'lastProjectId';
     const SAVE_DEBOUNCE_MS = 600;
 
-    let current = null;   // {id,name}
-    let boxes   = [];     // [{id,x,y,w,h,color}]
-    let bgUrl   = "";     // Bild-Download-URL
+    let folders = [];            // [{id,name}]
+    let allProjects = [];        // [{id,name,folderId,bgUrl,boxes}]
+    let currentFolderId = null;  // null = Alle
+    let current = null;          // aktives Projekt {id,name}
+    let boxes = [];
+    let bgUrl = "";
     let saveTimer = null;
 
     const status = (t)=> statusEl.textContent = t;
 
-    /* ====== Speichern (Autosave Debounce) ====== */
+    /* ===== Helpers ===== */
+    const slug = s => (s||'').toLowerCase().trim().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,'') || String(Date.now());
+    const hexToRGBA = (hex, a)=>{
+      const v = hex.replace('#',''); const r=parseInt(v.slice(0,2),16), g=parseInt(v.slice(2,4),16), b=parseInt(v.slice(4,6),16);
+      return `rgba(${r},${g},${b},${a})`;
+    };
+
     function scheduleSave(){
       if(!current) return;
       clearTimeout(saveTimer);
       status('Speichern…');
       saveTimer = setTimeout(async ()=>{
         await setDoc(doc(db,'projects',current.id), {
-          name: current.name,
-          bgUrl,
-          boxes,
-          updatedAt: Date.now()
+          name: current.name, folderId: current.folderId || null,
+          bgUrl, boxes, updatedAt: Date.now()
         }, { merge:true });
         status('Gespeichert');
       }, SAVE_DEBOUNCE_MS);
     }
 
-    /* ====== Projektliste laden & rendern ====== */
+    /* ===== Daten laden ===== */
+    async function loadFolders(){
+      const snap = await getDocs(collection(db,'folders'));
+      folders = [];
+      snap.forEach(d=> folders.push({ id:d.id, ...(d.data()||{}) }));
+      folders.sort((a,b)=> (a.name||a.id).localeCompare(b.name||b.id));
+    }
     async function loadProjects(){
-      status('Lade Projekte…');
-      projList.innerHTML = '';
       const snap = await getDocs(collection(db,'projects'));
-      const items = [];
-      snap.forEach(d => items.push({ id: d.id, ...(d.data()||{}) }));
-      items.sort((a,b)=> (a.name||a.id).localeCompare(b.name||b.id));
-
-      items.forEach(p=>{
-        const li = document.createElement('li');
-        const btn = document.createElement('button');
-        btn.className = 'proj-btn';
-        btn.dataset.pid = p.id;
-        btn.textContent = (p.name || p.id);
-        btn.onclick = ()=> openProject(p.id);
-        li.appendChild(btn);
-        projList.appendChild(li);
-      });
-
-      status(items.length ? 'Bereit' : 'Keine Projekte');
-
-      // Zuletzt genutztes Projekt automatisch öffnen
-      const last = localStorage.getItem(LAST_KEY);
-      if(last) { openProject(last).catch(()=>{}); }
+      allProjects = [];
+      snap.forEach(d=> allProjects.push({ id:d.id, ...(d.data()||{}) }));
+      allProjects.sort((a,b)=> (a.name||a.id).localeCompare(b.name||b.id));
     }
 
-    /* ====== Neues Projekt anlegen ====== */
+    /* ===== Render Ordner ===== */
+    function renderFolders(){
+      folderList.innerHTML = '';
+      // "Alle"-Pseudo-Ordner
+      folderList.appendChild(folderRow({ id:null, name:'Alle' }, true));
+      folders.forEach(f=> folderList.appendChild(folderRow(f)));
+      highlightActiveFolder();
+    }
+    function folderRow(f, isAll=false){
+      const li = document.createElement('li'); li.className='row'; li.dataset.fid = f.id ?? '';
+      const btn = document.createElement('button'); btn.className='main'; btn.textContent = f.name;
+      btn.onclick = ()=> { currentFolderId = f.id ?? null; renderProjects(); highlightActiveFolder(); };
+      li.appendChild(btn);
+
+      const icons = document.createElement('div'); icons.className='icons';
+      if(!isAll){
+        const rn = document.createElement('button'); rn.className='icon-btn'; rn.title='Umbenennen'; rn.textContent='✏️';
+        rn.onclick = async ()=>{
+          const name = prompt('Ordner umbenennen:', f.name || '');
+          if(!name) return;
+          await setDoc(doc(db,'folders', f.id), { name }, { merge:true });
+          await loadFolders(); renderFolders();
+        };
+        const del = document.createElement('button'); del.className='icon-btn'; del.title='Löschen'; del.textContent='🗑️';
+        del.onclick = async ()=>{
+          const has = allProjects.some(p=> (p.folderId||null) === f.id);
+          if(has){ alert('Ordner ist nicht leer. Verschiebe oder lösche zuerst die Projekte.'); return; }
+          if(!confirm(`Ordner "${f.name}" wirklich löschen?`)) return;
+          await deleteDoc(doc(db,'folders', f.id));
+          await loadFolders(); renderFolders();
+        };
+        icons.appendChild(rn); icons.appendChild(del);
+      }
+      // Drop-Ziel für Projekte:
+      li.ondragover = (e)=>{ e.preventDefault(); li.classList.add('droptarget'); };
+      li.ondragleave = ()=> li.classList.remove('droptarget');
+      li.ondrop = async (e)=>{
+        e.preventDefault(); li.classList.remove('droptarget');
+        const pid = e.dataTransfer.getData('text/projectId'); if(!pid) return;
+        await setDoc(doc(db,'projects',pid), { folderId: f.id ?? null }, { merge:true });
+        await loadProjects(); renderProjects();
+      };
+      li.appendChild(icons);
+      return li;
+    }
+    function highlightActiveFolder(){
+      document.querySelectorAll('#folderList .row').forEach(r=>{
+        const fid = r.dataset.fid || null;
+        r.classList.toggle('active', (fid=== (currentFolderId ?? null)));
+      });
+    }
+
+    /* ===== Render Projekte ===== */
+    function renderProjects(){
+      projList.innerHTML = '';
+      const list = allProjects.filter(p=> (currentFolderId==null ? true : (p.folderId||null)===currentFolderId));
+      list.forEach(p=> projList.appendChild(projectRow(p)));
+      // aktives Projekt highlighten
+      document.querySelectorAll('#projList .row').forEach(r=>{
+        r.classList.toggle('active', r.dataset.pid === (current?.id || ''));
+      });
+    }
+    function projectRow(p){
+      const li = document.createElement('li'); li.className='row'; li.dataset.pid = p.id;
+      const btn = document.createElement('button'); btn.className='main'; btn.textContent = p.name || p.id;
+      btn.onclick = ()=> openProject(p.id);
+      btn.draggable = true;
+      btn.ondragstart = (e)=> e.dataTransfer.setData('text/projectId', p.id);
+      li.appendChild(btn);
+
+      const icons = document.createElement('div'); icons.className='icons';
+      const rn = document.createElement('button'); rn.className='icon-btn'; rn.title='Umbenennen'; rn.textContent='✏️';
+      rn.onclick = async ()=>{
+        const name = prompt('Projekt umbenennen:', p.name || '');
+        if(!name) return;
+        await setDoc(doc(db,'projects', p.id), { name }, { merge:true });
+        await loadProjects(); renderProjects(); if(current?.id===p.id){ current.name=name; titleEl.textContent=name; }
+      };
+      const del = document.createElement('button'); del.className='icon-btn'; del.title='Löschen'; del.textContent='🗑️';
+      del.onclick = async ()=>{
+        if(!confirm(`Projekt "${p.name}" wirklich löschen?`)) return;
+        await deleteDoc(doc(db,'projects', p.id));
+        if(current?.id===p.id){ current=null; boxes=[]; bgUrl=''; titleEl.textContent='Kein Projekt gewählt'; bg.classList.add('hidden'); canvas.querySelectorAll('.box').forEach(b=>b.remove()); }
+        await loadProjects(); renderProjects();
+      };
+      icons.appendChild(rn); icons.appendChild(del);
+      li.appendChild(icons);
+      return li;
+    }
+
+    /* ===== Neues Projekt / Ordner ===== */
     $('addBtn').onclick = async ()=>{
-      const name = $('newName').value.trim();
-      if(!name) return;
-      const id = name.toLowerCase()
-                     .replace(/\s+/g,'-')
-                     .replace(/[^a-z0-9\-]/g,'') || String(Date.now());
-      await setDoc(doc(db,'projects',id), { name, bgUrl:'', boxes:[], updatedAt: Date.now() });
+      const name = $('newName').value.trim(); if(!name) return;
+      const id = slug(name);
+      await setDoc(doc(db,'projects',id), {
+        name, folderId: currentFolderId ?? null, bgUrl:'', boxes:[], updatedAt: Date.now()
+      });
       $('newName').value = '';
-      await loadProjects();
-      await openProject(id);
+      await loadProjects(); renderProjects(); openProject(id);
+    };
+    $('addFolderBtn').onclick = async ()=>{
+      const name = $('newFolderName').value.trim(); if(!name) return;
+      const id = slug(name);
+      await setDoc(doc(db,'folders',id), { name, createdAt: Date.now() });
+      $('newFolderName').value=''; await loadFolders(); renderFolders();
     };
 
-    /* ====== Projekt öffnen ====== */
+    /* ===== Projekt öffnen ===== */
     async function openProject(id){
       status('Lade Projekt…');
       const d = await getDoc(doc(db,'projects',id));
       if(!d.exists()){ status('Nicht gefunden'); return; }
-
       const data = d.data();
-      current = { id, name: data.name || id };
-      boxes   = Array.isArray(data.boxes) ? data.boxes : [];
-      bgUrl   = data.bgUrl || '';
-
+      current = { id, name:data.name||id, folderId: data.folderId||null };
+      boxes = Array.isArray(data.boxes) ? data.boxes : [];
+      bgUrl = data.bgUrl || '';
       titleEl.textContent = current.name;
       localStorage.setItem(LAST_KEY, id);
 
-      // Sidebar-Highlight
-      document.querySelectorAll('.proj-btn').forEach(b=>{
-        b.classList.toggle('active', b.dataset.pid === id);
+      // highlight in Liste
+      document.querySelectorAll('#projList .row').forEach(r=>{
+        r.classList.toggle('active', r.dataset.pid === id);
       });
 
-      // Hintergrundbild setzen
-      if(bgUrl){ bg.src = bgUrl; bg.classList.remove('hidden'); }
-      else { bg.src=''; bg.classList.add('hidden'); }
-
+      if(bgUrl){ bg.src = bgUrl; bg.classList.remove('hidden'); } else { bg.src=''; bg.classList.add('hidden'); }
       renderBoxes();
       status('Geladen');
     }
 
-    /* ====== Boxen rendern ====== */
+    /* ===== Boxen & Canvas ===== */
     function renderBoxes(){
       [...canvas.querySelectorAll('.box')].forEach(n=>n.remove());
-
       boxes.forEach(b=>{
-        const div = document.createElement('div');
-        div.className = 'box';
-        div.style.left   = b.x + 'px';
-        div.style.top    = b.y + 'px';
-        div.style.width  = b.w + 'px';
-        div.style.height = b.h + 'px';
-        div.style.background = hexToRGBA(b.color||'#ffcc00', .25);
-        div.style.borderColor = b.color||'#ffcc00';
-        div.dataset.id = b.id;
-
-        makeDraggableResizable(div, b.id);
-        canvas.appendChild(div);
+        const div = document.createElement('div'); div.className='box'; div.dataset.id=b.id;
+        div.style.left=b.x+'px'; div.style.top=b.y+'px'; div.style.width=b.w+'px'; div.style.height=b.h+'px';
+        div.style.background=hexToRGBA(b.color||'#ffcc00',.25); div.style.borderColor=b.color||'#ffcc00';
+        makeDraggableResizable(div, b.id); canvas.appendChild(div);
       });
     }
 
-    /* ====== Hintergrundbild ====== */
     $('bgBtn').onclick = ()=> fileInput.click();
     fileInput.onchange = async (e)=>{
       if(!current || !e.target.files?.length) return;
-      const file = e.target.files[0];
-      status('Bild wird hochgeladen…');
+      const file = e.target.files[0]; status('Bild wird hochgeladen…');
       const r = ref(storage, `projects/${current.id}/background`);
-      await uploadBytes(r, file);
-      bgUrl = await getDownloadURL(r);
-      bg.src = bgUrl; bg.classList.remove('hidden');
-      status('Bild bereit');
-      scheduleSave(); // autosave nach Upload
+      await uploadBytes(r, file); bgUrl = await getDownloadURL(r);
+      bg.src = bgUrl; bg.classList.remove('hidden'); status('Bild bereit'); scheduleSave();
     };
 
-    /* ====== Kästchen hinzufügen ====== */
     $('addBoxBtn').onclick = ()=>{
       if(!current) return;
       const id = 'b'+Math.random().toString(36).slice(2,8);
       const color = colorPicker.value || '#ffcc00';
       const box = { id, x:40+boxes.length*10, y:40+boxes.length*10, w:160, h:100, color };
-      boxes.push(box);
-      renderBoxes();
-      scheduleSave(); // autosave
+      boxes.push(box); renderBoxes(); scheduleSave();
     };
-
-    /* ====== Manueller Save-Button ====== */
     $('saveBtn').onclick = ()=> scheduleSave();
 
-    /* ====== Utilities ====== */
-    function hexToRGBA(hex, a){
-      const v = hex.replace('#','');
-      const r = parseInt(v.substring(0,2),16);
-      const g = parseInt(v.substring(2,4),16);
-      const b = parseInt(v.substring(4,6),16);
-      return `rgba(${r},${g},${b},${a})`;
-    }
-
-    // Drag/Resize: Ecke rechts-unten = Resize (10px), sonst Move
     function makeDraggableResizable(el, id){
-      let mode = null; let startX, startY, startW, startH, startL, startT;
-
+      let mode=null, startX, startY, startW, startH, startL, startT;
       el.addEventListener('pointerdown', (e)=>{
-        const rect = el.getBoundingClientRect();
-        const inResize = (rect.right - e.clientX < 10) && (rect.bottom - e.clientY < 10);
+        const rect = el.getBoundingClientRect(); const inResize = (rect.right-e.clientX<10)&&(rect.bottom-e.clientY<10);
         mode = inResize ? 'resize' : 'move';
-        startX = e.clientX; startY = e.clientY;
-        startW = rect.width; startH = rect.height;
+        startX=e.clientX; startY=e.clientY; startW=rect.width; startH=rect.height;
         const c = canvas.getBoundingClientRect();
-        startL = rect.left - c.left + canvas.scrollLeft;
-        startT = rect.top  - c.top  + canvas.scrollTop;
+        startL = rect.left - c.left + canvas.scrollLeft; startT = rect.top - c.top + canvas.scrollTop;
         el.setPointerCapture(e.pointerId);
       });
-
       el.addEventListener('pointermove', (e)=>{
-        if(!mode) return;
-        const dx = e.clientX - startX;
-        const dy = e.clientY - startY;
-        if(mode==='move'){
-          el.style.left = (startL + dx) + 'px';
-          el.style.top  = (startT + dy) + 'px';
-        }else{
-          el.style.width  = Math.max(40, startW + dx) + 'px';
-          el.style.height = Math.max(30, startH + dy) + 'px';
-        }
+        if(!mode) return; const dx=e.clientX-startX, dy=e.clientY-startY;
+        if(mode==='move'){ el.style.left=(startL+dx)+'px'; el.style.top=(startT+dy)+'px'; }
+        else{ el.style.width=Math.max(40,startW+dx)+'px'; el.style.height=Math.max(30,startH+dy)+'px'; }
       });
-
       el.addEventListener('pointerup', ()=>{
         if(!mode) return;
-        const r = el.getBoundingClientRect();
-        const c = canvas.getBoundingClientRect();
-        const bx = boxes.find(b=>b.id===id);
-        if(bx){
-          bx.x = r.left - c.left + canvas.scrollLeft;
-          bx.y = r.top  - c.top  + canvas.scrollTop;
-          bx.w = r.width; bx.h = r.height;
-        }
-        mode = null;
-        scheduleSave(); // autosave nach Änderung
+        const r=el.getBoundingClientRect(), c=canvas.getBoundingClientRect(); const bx=boxes.find(b=>b.id===id);
+        if(bx){ bx.x = r.left - c.left + canvas.scrollLeft; bx.y = r.top - c.top + canvas.scrollTop; bx.w = r.width; bx.h = r.height; }
+        mode=null; scheduleSave();
       });
-
-      // Doppelklick = löschen
       el.addEventListener('dblclick', ()=>{
-        boxes = boxes.filter(b=>b.id!==id);
-        el.remove();
-        scheduleSave();
+        boxes = boxes.filter(b=>b.id!==id); el.remove(); scheduleSave();
       });
     }
 
-    /* ====== Start ====== */
-    loadProjects();
+    /* ===== Start ===== */
+    (async function init(){
+      status('Lade…');
+      await Promise.all([loadFolders(), loadProjects()]);
+      renderFolders(); renderProjects();
+      const last = localStorage.getItem(LAST_KEY);
+      if(last){ openProject(last).catch(()=>{}); }
+      status('Bereit');
+    })();
   </script>
 </body>
 </html>
